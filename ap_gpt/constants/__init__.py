@@ -1,0 +1,90 @@
+import os
+import numpy as np
+# Set seed for reproducibility
+np.random.seed(42)
+
+RANDOM_SEED = 42
+
+np.random.seed(RANDOM_SEED)
+
+try:
+    ITER_VALUE : int = 100 * (1 + int(os.environ['SLURM_NODEID'])) + int(os.environ['SLURM_PROCID']) + 1
+except KeyError :
+    ITER_VALUE : int = np.random.randint(2000, 10000)
+
+# DATA ENGINEERING  ---------------------------------------------------------
+MAX_TRIP_NUMBER = 12
+RANDOM_SEED = 123
+
+# TOKENS -------------------------------------------------------------------
+PAD_TOKEN = {"ACTION" : "<ACTION_PAD>", "duration" : "<DURATION_PAD", "DISTANCE" : "<DISTANCE_PAD>"}
+UNK_TOKEN = "<UNK>"
+SOT_TOKEN = "<SOT>"
+EOT_TOKEN = {"ACTION" : "<ACTION_EOT>", "duration" : "<DURATION_EOT>", "DISTANCE" : "<DISTANCE_EOT>"}
+
+# Pipeline constants ------------------------------------------------------
+PIPELINE_NAME = "ap_gpt"
+
+# SCHEMA FILES ------------------------------------------------------
+SCHEMA_FILE_PATH = os.path.join("config", "schema.yml")
+
+# Table constants ------------------------------------------------------
+TABLE_HOUSEHOLD_NAME = "households"
+TABLE_PERSON_NAME = "persons"
+TABLE_TRIP_NAME = "trips"
+
+SCHEMA_IDENTIFIER_NAME = "identifier"
+SCHEMA_WEIGHT_NAME = "weight"
+SCHEMA_NUMERICAL_NAME = "numerical"
+SCHEMA_CATEGORICAL_NAME = "categorical"
+SCHEMA_CUTTING_NAME = "cutting"
+SCHEMA_RECODING_NAME = "recoding"
+
+TABLE_TRIP_DURATION_NAME = "duration"
+TABLE_TRIP_DISTANCE_NAME = "distance"
+TABLE_TRIP_REQUIRED_COLUMNS = ["preceding_purpose", "departure_time", 'mode', 'trip_duration', 'euclidean_distance', 'following_purpose', 'activity_duration', 'arrival_time', 'is_last_trip']
+
+# DATA INGESTION ------------------------------------------------------
+DATA_STORE_DIR_NAME = "data"
+DATA_RAW_DIR_NAME = "data/raw"
+
+DATA_VALIDATION_REPORT_FILE_NAME = "validation_report.json"
+
+DATA_RAW_HOUSEHOLD_FILE_NAME = "household.csv"
+DATA_RAW_PERSON_FILE_NAME = "person.csv"
+DATA_RAW_TRIP_FILE_NAME = "trip.csv"
+
+DATA_HOUSEHOLD_FILE_NAME = "household.csv"
+DATA_PERSON_FILE_NAME = "person.csv"
+DATA_TRIP_FILE_NAME = "trip.csv"
+
+DATA_HOUSEHOLD_PROCESSED_FILE_NAME = "processed_household.csv"
+DATA_PERSON_PROCESSED_FILE_NAME = "processed_person.csv"
+DATA_TRIP_PROCESSED_FILE_NAME = "processed_trip.csv"
+
+DATA_MERGED_FILE_NAME = "merged_data.csv"
+
+TRAIN_DATA_FILE_NAME = "train_data.csv"
+TEST_DATA_FILE_NAME = "test_data.csv"
+VALIDATION_DATA_FILE_NAME = "validation_data.csv"
+
+TRAIN_DATA_AS_SEQUENCE_FILE_NAME = "train_data_as_sequence.csv"
+TEST_DATA_AS_SEQUENCE_FILE_NAME = "test_data_as_sequence.csv"
+VALIDATION_DATA_AS_SEQUENCE_FILE_NAME = "validation_data_as_sequence.csv"
+
+TRAIN_TEST_SPLIT_RATIO = 0.8
+VALIDATION_SPLIT_RATIO = 0.2
+
+# MODEL TRAINING ------------------------------------------------------
+
+TOKENIZER_FILE_NAME = "tokenizer.txt"
+TRAIN_ENCODED_DATA_FILE_NAME = "train_encoded_data.csv"
+TEST_ENCODED_DATA_FILE_NAME = "test_encoded_data.csv"
+
+# ACTION -------------------------------------------------------
+
+ACTION_NB_COLS = 3
+MAX_SEQ_LENGTH = 100
+
+# MODEL TRAINING ------------------------------------------------------
+

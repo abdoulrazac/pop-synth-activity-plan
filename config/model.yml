@@ -1,0 +1,7 @@
+max_len: 100
+nb_epochs: 100
+action_start_idx: 19
+list_num_layers : [3, 4, 6]
+list_embed_size : [4, 6, 8, 16]
+list_forward_expansion : [2, 4]
+list_dropout : [0.1, 0.2, 0.3]

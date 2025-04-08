@@ -1,0 +1,22 @@
+dill==0.3.9
+ipykernel==6.29.5
+ipython==8.18.1
+jupyter
+matplotlib==3.9.2
+numpy==1.26.4
+openpyxl==3.1.5
+pandas==2.2.2
+plotnine==0.13.6
+requests==2.32.3
+scikit-learn==1.5.1
+scipy==1.13.1
+seaborn==0.13.2
+setuptools==75.1.0
+statsmodels==0.14.2
+torch==2.5.1
+torchaudio==2.5.1
+torchvision==0.20.1
+tqdm==4.66.5
+yaml~=0.2.5
+pyyaml~=6.0.2
+-e .

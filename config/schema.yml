@@ -1,0 +1,89 @@
+households:
+  identifier: 'household_id'
+  weight: 'household_weight'
+  numerical:
+    'household_size'
+    'number_of_vehicles'
+    'number_of_bikes'
+  categorical:
+    'house_type'
+    'house_occupation_type'
+    'has_internet'
+  cutting:
+    household_size:
+      '1': [ 1, 2 ]
+      '2': [ 2, 3 ]
+      '3': [ 3, 4 ]
+      '4': [ 4, 5 ]
+      '5': [ 5, 20 ]
+    number_of_vehicles:
+      '0': [ 0, 1 ]
+      '1': [ 1, 2 ]
+      '2': [ 2, 3 ]
+      '3': [ 3, 4 ]
+      '4+': [ 4, 20 ]
+    number_of_bikes:
+      '0': [ 0, 1 ]
+      '1-2': [ 1, 3 ]
+      '3-4': [ 3, 5 ]
+      '5+': [ 5, 20 ]
+  recoding:
+
+persons:
+  identifier: 'person_id'
+  weight: 'person_weight'
+  numerical:
+    'age'
+    'number_of_trips'
+  categorical:
+    'link_ref_person'
+    'is_adolescent'
+    'sex'
+    'school_level'
+    'employed'
+    'studies'
+    'has_license'
+    'socioprofessional_class'
+    'has_pt_subscription'
+    'travel_respondent'
+  cutting:
+    age:
+      00-14 yo: [ 0, 15 ]
+      15-29 yo: [ 15, 30 ]
+      30-44 yo: [ 30, 45 ]
+      45-59 yo: [ 45, 60 ]
+      60-74 yo: [ 60, 75 ]
+      75 yo and +: [ 75, 150 ]
+  recoding:
+    school_level:
+      high school: [ 'high' ]
+      primary: [ 'primary' ]
+      bac1_bac2: [ 'bac1_bac2' ]
+      bac3_more: [ 'bac3_more' ]
+      other: [ 'other' ]
+    socioprofessional_class:
+      retired: [ 'retired' ]
+      employee: [ 'employee' ]
+      intermediate_profession: [ 'intermediate_profession' ]
+      unemployed_never_worked: [ 'unemployed_never_worked', 'student' ]
+      farmer: [ 'farmer' ]
+      worker: [ 'worker' ]
+      manager_intellectual_professions: [ 'manager_intellectual_professions' ]
+      craftsman_trader_entrepreneur: [ 'craftsman_trader_entrepreneur' ]
+
+trips:
+  identifier: 'trip_id'
+  weight: 'trip_weight'
+  numerical:
+    'mode'
+    'euclidean_distance'
+    'routed_distance'
+    'departure_time'
+    'arrival_time'
+    'trip_duration'
+    'activity_duration'
+  categorical:
+    'is_first_trip'
+    'is_last_trip'
+    'following_purpose'
+    'preceding_purpose'

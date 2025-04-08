@@ -1,0 +1,16 @@
+# Idea
+.idea
+
+
+
+# Local env files
+# dotenv
+.env
+.env.*
+
+# Package files
+ap_gpt.egg-info
+
+# Log files
+logs
+ap_gpt/logs

@@ -33,6 +33,7 @@ shared_files : List[Tuple[str, bool]] = [
     # Pipelines directories
     ('main.py', False),
     ('setup.py', False),
+    ('demo.py', False),
     ('requirements.txt', False),
     ('README.md', False)
 ]

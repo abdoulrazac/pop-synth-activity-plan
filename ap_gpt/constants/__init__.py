@@ -23,7 +23,7 @@ SOT_TOKEN = "<SOT>"
 EOT_TOKEN = {"ACTION" : "<ACTION_EOT>", "duration" : "<DURATION_EOT>", "DISTANCE" : "<DISTANCE_EOT>"}
 
 # Pipeline constants ------------------------------------------------------
-PIPELINE_NAME = "ap_gpt"
+ARTIFACT_DIR_NAME = "artifact"
 
 # SCHEMA FILES ------------------------------------------------------
 SCHEMA_FILE_PATH = os.path.join("config", "schema.yml")
@@ -51,8 +51,8 @@ DATA_RAW_DIR_NAME = "data/raw"
 DATA_VALIDATION_REPORT_FILE_NAME = "validation_report.json"
 
 DATA_RAW_HOUSEHOLD_FILE_NAME = "household.csv"
-DATA_RAW_PERSON_FILE_NAME = "person.csv"
-DATA_RAW_TRIP_FILE_NAME = "trip.csv"
+DATA_RAW_PERSON_FILE_NAME = "persons.csv"
+DATA_RAW_TRIP_FILE_NAME = "trips.csv"
 
 DATA_HOUSEHOLD_FILE_NAME = "household.csv"
 DATA_PERSON_FILE_NAME = "person.csv"

@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict, Tuple
+from from_root import from_root
 
 from ap_gpt.constants import *
 from ap_gpt.utils.main_utils import get_device
@@ -10,7 +11,7 @@ TIMESTAMP: str = datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
 
 @dataclass
 class TrainingPipelineConfig:
-    pipeline_name: str = PIPELINE_NAME
+    artifact_dir_name: str = os.path.join(from_root(), ARTIFACT_DIR_NAME, TIMESTAMP)
     timestamp: str = TIMESTAMP
 
 
@@ -20,35 +21,32 @@ training_pipeline_config: TrainingPipelineConfig = TrainingPipelineConfig()
 class DataIngestionConfig :
     # Raws DATA
     data_store_path: str = os.path.join(
-        training_pipeline_config.pipeline_name,
+        training_pipeline_config.artifact_dir_name,
         DATA_STORE_DIR_NAME
     )
     household_raw_data_file_path: str = os.path.join(
-        training_pipeline_config.pipeline_name,
         DATA_RAW_DIR_NAME, DATA_RAW_HOUSEHOLD_FILE_NAME
     )
     person_raw_data_file_path: str = os.path.join(
-        training_pipeline_config.pipeline_name,
         DATA_RAW_DIR_NAME, DATA_RAW_PERSON_FILE_NAME
     )
     trip_raw_data_file_path: str = os.path.join(
-        training_pipeline_config.pipeline_name,
         DATA_RAW_DIR_NAME, DATA_RAW_TRIP_FILE_NAME
     )
 
     # Store DATA
     household_data_file_path: str = os.path.join(
-        training_pipeline_config.pipeline_name,
+        training_pipeline_config.artifact_dir_name,
         DATA_STORE_DIR_NAME, DATA_HOUSEHOLD_FILE_NAME
     )
 
     person_data_file_path: str = os.path.join(
-        training_pipeline_config.pipeline_name,
+        training_pipeline_config.artifact_dir_name,
         DATA_STORE_DIR_NAME, DATA_PERSON_FILE_NAME
     )
 
     trip_data_file_path: str = os.path.join(
-        training_pipeline_config.pipeline_name,
+        training_pipeline_config.artifact_dir_name,
         DATA_STORE_DIR_NAME, DATA_TRIP_FILE_NAME
     )
 
@@ -56,7 +54,7 @@ class DataIngestionConfig :
 @dataclass
 class DataValidationConfig:
     data_store_path: str = os.path.join(
-        training_pipeline_config.pipeline_name,
+        training_pipeline_config.artifact_dir_name,
         DATA_STORE_DIR_NAME
     )
     validation_report_file_path: str = os.path.join(
@@ -67,7 +65,7 @@ class DataValidationConfig:
 @dataclass
 class DataProcessingConfig:
     data_store_path: str = os.path.join(
-        training_pipeline_config.pipeline_name,
+        training_pipeline_config.artifact_dir_name,
         DATA_STORE_DIR_NAME
     )
     household_processed_data_file_path: str = os.path.join(
@@ -83,7 +81,7 @@ class DataProcessingConfig:
 @dataclass
 class DataMergingConfig:
     data_store_path: str = os.path.join(
-        training_pipeline_config.pipeline_name,
+        training_pipeline_config.artifact_dir_name,
         DATA_STORE_DIR_NAME
     )
     merged_data_file_path: str = os.path.join(
@@ -93,7 +91,7 @@ class DataMergingConfig:
 @dataclass
 class DataSplittingConfig:
     data_store_path: str = os.path.join(
-        training_pipeline_config.pipeline_name,
+        training_pipeline_config.artifact_dir_name,
         DATA_STORE_DIR_NAME
     )
     train_data_file_path: str = os.path.join(
@@ -111,7 +109,7 @@ class DataSplittingConfig:
 @dataclass
 class DataToSequenceConfig:
     data_store_path: str = os.path.join(
-        training_pipeline_config.pipeline_name,
+        training_pipeline_config.artifact_dir_name,
         DATA_STORE_DIR_NAME
     )
     train_x_data_as_sequence_file_path: str = os.path.join(
@@ -142,7 +140,7 @@ class DataToSequenceConfig:
 @dataclass
 class DataTokenizerConfig:
     data_store_path: str = os.path.join(
-        training_pipeline_config.pipeline_name,
+        training_pipeline_config.artifact_dir_name,
         DATA_STORE_DIR_NAME
     )
     tokenizer_file_path: str = os.path.join(

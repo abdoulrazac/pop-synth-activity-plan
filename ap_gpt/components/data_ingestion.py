@@ -1,5 +1,6 @@
 import os
 import sys
+from dataclasses import asdict
 from typing import Tuple
 
 import pandas as pd

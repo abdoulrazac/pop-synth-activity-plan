@@ -26,10 +26,6 @@ shared_files : List[Tuple[str, bool]] = [
     ('config/schema.yml', False),
     ('config/model.yml', False),
 
-    # Constants directories
-    ('constants', True),
-    ('constants/__init__.py', False),
-
     # Pipelines directories
     ('main.py', False),
     ('setup.py', False),
@@ -81,7 +77,6 @@ ap_files : List[Tuple[str, bool]] = [
 
     # Logging directories
     ('ap_logger', True),
-    ('logs', True),
     ('ap_logger/__init__.py', False),
 
     # Utils directories

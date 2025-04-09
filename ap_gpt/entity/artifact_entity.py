@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-
+from typing import Union
 
 @dataclass
 class DataIngestionArtifact:
@@ -30,9 +30,9 @@ class TripDataProcessingArtifact:
 
 @dataclass
 class DataProcessingArtifact:
-    household_processed_data_file_path: str
-    person_processed_data_file_path: str
-    trip_processed_data_file_path: str
+    household_processed_data_file_path: Union[str, HouseholdDataProcessingArtifact]
+    person_processed_data_file_path: Union[str, PersonDataProcessingArtifact]
+    trip_processed_data_file_path: Union[str, TripDataProcessingArtifact]
 
 
 @dataclass

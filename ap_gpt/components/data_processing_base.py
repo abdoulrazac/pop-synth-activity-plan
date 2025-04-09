@@ -1,4 +1,6 @@
 import sys
+import os
+from from_root import from_root
 from abc import ABC, abstractmethod
 from typing import Optional, List, Union
 
@@ -12,11 +14,11 @@ from ap_gpt.utils.main_utils import read_yaml_file
 class DataProcessingBase(ABC):
     def __init__(self) -> None:
         try:
-            self._schema_config = read_yaml_file(file_path=SCHEMA_FILE_PATH)
+            self._schema_config = read_yaml_file(file_path=os.path.join(from_root(), SCHEMA_FILE_PATH))
         except Exception as e:
             raise APException(e, sys)
 
-    def is_valid_data(self, data: pd.DataFrame, table_name: str, other_columns : Union[List, None] = None) -> Optional[bool]:
+    def is_valid_data(self, data: pd.DataFrame, table_name: str, other_columns : Union[List[str], None] = None) -> Optional[bool]:
         """
         Method Name :   is_valid_data
         Description :   This method checks if the data is valid
@@ -56,6 +58,7 @@ class DataProcessingBase(ABC):
                 if column not in data.columns:
                     raise f"Column named ''{column}'' is not present in data: {column}"
 
+            return True
         except Exception as e:
             raise APException(e, sys)
 
@@ -73,18 +76,17 @@ class DataProcessingBase(ABC):
         """
 
         try:
-            columns = [
-                self._schema_config[table_name][SCHEMA_IDENTIFIER_NAME],
-                self._schema_config[table_name][SCHEMA_WEIGHT_NAME],
-                *self._schema_config[table_name][SCHEMA_NUMERICAL_NAME],
-                *self._schema_config[table_name][SCHEMA_CATEGORICAL_NAME],
-            ]
+            columns = list({self._schema_config[table_name][SCHEMA_IDENTIFIER_NAME],
+                            self._schema_config[table_name][SCHEMA_WEIGHT_NAME],
+                            *self._schema_config[table_name][SCHEMA_NUMERICAL_NAME],
+                            *self._schema_config[table_name][SCHEMA_CATEGORICAL_NAME],
+                            *self._schema_config[table_name][SCHEMA_RELATIONAL_NAME]})
 
             return data[columns]
         except Exception as e:
             raise APException(e, sys)
 
-    def recode_numerical_columns(self, data: pd.DataFrame, table_name: str) -> pd.DataFrame:
+    def cut_numerical_columns(self, data: pd.DataFrame, table_name: str) -> pd.DataFrame:
         """Recode numerical columns
 
         Args:
@@ -94,15 +96,16 @@ class DataProcessingBase(ABC):
         Returns:
             pd.DataFrame: Dataframe with recoded columns
         """
-        recode_info = self._schema_config[table_name][SCHEMA_NUMERICAL_NAME]
+        recode_info = self._schema_config[table_name][SCHEMA_CUTTING_NAME]
         new_dat = data.copy()
         for col in recode_info.keys():
+            new_dat[col] = new_dat[col].astype('object')
             tmp = np.array(data[col].values)
             for k, v in recode_info[col].items():
                 a = tmp >= v[0]
                 b = tmp < v[1]
                 new_dat.loc[a & b, col] = k
-            new_dat[col] = new_dat[col].astype(object)
+            new_dat[col] = new_dat[col].astype('object')
         return new_dat
 
     def recode_categorical_columns(self, data: pd.DataFrame, table_name) -> pd.DataFrame:
@@ -116,7 +119,7 @@ class DataProcessingBase(ABC):
             pd.DataFrame: Dataframe with recoded columns
         """
 
-        recode_info = self._schema_config[table_name][SCHEMA_CATEGORICAL_NAME]
+        recode_info = self._schema_config[table_name][SCHEMA_RECODING_NAME]
         new_dat = data.copy()
         for col in recode_info.keys():
             for k, v in recode_info[col].items():

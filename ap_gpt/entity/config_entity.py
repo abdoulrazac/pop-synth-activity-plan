@@ -11,7 +11,7 @@ TIMESTAMP: str = datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
 
 @dataclass
 class TrainingPipelineConfig:
-    artifact_dir_name: str = os.path.join(from_root(), ARTIFACT_DIR_NAME, TIMESTAMP)
+    artifact_dir_name: str = os.path.join(from_root(), ARTIFACT_DIR_NAME) #, TIMESTAMP)
     timestamp: str = TIMESTAMP
 
 

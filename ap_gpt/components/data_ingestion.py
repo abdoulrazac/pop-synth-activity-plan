@@ -72,7 +72,7 @@ class DataIngestion :
                 trip_data_file_path=self.data_ingestion_config.trip_data_file_path,
             )
 
-            logging.info(f"Data ingestion artifact: {data_ingestion_artifact}")
+            logging.info("Data ingestion artifact created")
             return data_ingestion_artifact
 
         except Exception as e:

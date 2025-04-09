@@ -37,6 +37,7 @@ SCHEMA_IDENTIFIER_NAME = "identifier"
 SCHEMA_WEIGHT_NAME = "weight"
 SCHEMA_NUMERICAL_NAME = "numerical"
 SCHEMA_CATEGORICAL_NAME = "categorical"
+SCHEMA_RELATIONAL_NAME = "relational"
 SCHEMA_CUTTING_NAME = "cutting"
 SCHEMA_RECODING_NAME = "recoding"
 

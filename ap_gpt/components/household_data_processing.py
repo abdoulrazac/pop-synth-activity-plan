@@ -37,8 +37,12 @@ class HouseholdDataProcessing(DataProcessingBase):
             logging.info("Entered household initiate_data_processing method of DataProcessing class")
 
             # Read the data from the CSV files
-            logging.info("Reading data from CSV files")
+            logging.info("Reading household data")
             df_household = read_data(self.data_ingestion_artifact.household_data_file_path)
+
+            # Keep only the required columns
+            logging.info("Keeping only the household's required columns")
+            df_household = self.keep_required_columns(df_household, self.table_name)
 
             # Validate the data
             logging.info("Validating household data")
@@ -46,13 +50,9 @@ class HouseholdDataProcessing(DataProcessingBase):
             if not is_valid_data:
                 raise ValueError(f"Invalid data in household data: {self.table_name}")
 
-            # Keep only the required columns
-            logging.info("Keeping only the household's required columns")
-            df_household = self.keep_required_columns(df_household, self.table_name)
-
             # recode numerical columns
             logging.info("Recode household numerical columns")
-            df_household = self.recode_numerical_columns(df_household, self.table_name)
+            df_household = self.cut_numerical_columns(df_household, self.table_name)
 
             logging.info("Create household DataProcessing artifact")
             data_processing_artifact: HouseholdDataProcessingArtifact = HouseholdDataProcessingArtifact(

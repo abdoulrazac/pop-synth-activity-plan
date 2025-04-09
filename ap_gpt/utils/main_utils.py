@@ -114,6 +114,10 @@ def read_data(file_path: str, index_col=None, is_array:bool=False) -> Union[pd.D
             return pd.read_json(file_path)
         elif extension == ".xls" or extension == ".xlsx":
             return pd.read_excel(file_path, index_col=index_col)
+        elif extension == ".parquet":
+            return pd.read_parquet(file_path)
+        elif extension == ".feather":
+            return pd.read_feather(file_path)
         else:
             raise ValueError("Unknown format")
 
@@ -142,6 +146,10 @@ def save_data(data: Union[pd.DataFrame, np.ndarray], file_path: str, index: bool
             data.to_json(file_path, orient="records", lines=True)
         elif extension == ".xls" or extension == ".xlsx":
             data.to_excel(file_path, index=index)
+        elif extension == ".parquet":
+            data.to_parquet(file_path, index=index)
+        elif extension == ".feather":
+            data.to_feather(file_path)
         else:
             raise ValueError("Unknown format")
 
@@ -156,6 +164,7 @@ def split_data(data: pd.DataFrame, test_size: float, random_state=123) -> tuple:
     Args:
         data (pd.DataFrame): DataFrame to split.
         test_size (float): Proportion of the dataset to include in the test split.
+        random_state (int, optional): Random seed for reproducibility. Defaults to 123.
 
     Returns:
         tuple: Training and testing DataFrames.

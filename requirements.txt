@@ -17,6 +17,7 @@ torch==2.5.1
 torchaudio==2.5.1
 torchvision==0.20.1
 tqdm==4.66.5
-yaml~=0.2.5
-pyyaml~=6.0.2
+yaml==0.2.5
+pyyaml==6.0.2
+fastparquet==2024.11.0
 -e .

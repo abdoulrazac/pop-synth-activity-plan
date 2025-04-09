@@ -2,13 +2,15 @@ households:
   identifier: 'household_id'
   weight: 'household_weight'
   numerical:
-    'household_size'
-    'number_of_vehicles'
-    'number_of_bikes'
+    - 'household_size'
+    - 'number_of_vehicles'
+    - 'number_of_bikes'
   categorical:
-    'house_type'
-    'house_occupation_type'
-    'has_internet'
+    - 'house_type'
+    - 'house_occupation_type'
+    - 'has_internet'
+  relational:
+    - 'household_id'
   cutting:
     household_size:
       '1': [ 1, 2 ]
@@ -33,19 +35,22 @@ persons:
   identifier: 'person_id'
   weight: 'person_weight'
   numerical:
-    'age'
-    'number_of_trips'
+    - 'age'
+    - 'number_of_trips'
   categorical:
-    'link_ref_person'
-    'is_adolescent'
-    'sex'
-    'school_level'
-    'employed'
-    'studies'
-    'has_license'
-    'socioprofessional_class'
-    'has_pt_subscription'
-    'travel_respondent'
+    - 'link_ref_person'
+    - 'is_adolescent'
+    - 'sex'
+    - 'school_level'
+    - 'employed'
+    - 'studies'
+    - 'has_license'
+    - 'socioprofessional_class'
+    - 'has_pt_subscription'
+    - 'travel_respondent'
+  relational:
+    - 'person_id'
+    - 'household_id'
   cutting:
     age:
       00-14 yo: [ 0, 15 ]
@@ -75,15 +80,18 @@ trips:
   identifier: 'trip_id'
   weight: 'trip_weight'
   numerical:
-    'mode'
-    'euclidean_distance'
-    'routed_distance'
-    'departure_time'
-    'arrival_time'
-    'trip_duration'
-    'activity_duration'
+    - 'mode'
+    - 'euclidean_distance'
+    - 'routed_distance'
+    - 'departure_time'
+    - 'arrival_time'
+    - 'trip_duration'
+    - 'activity_duration'
   categorical:
-    'is_first_trip'
-    'is_last_trip'
-    'following_purpose'
-    'preceding_purpose'
+    - 'is_first_trip'
+    - 'is_last_trip'
+    - 'following_purpose'
+    - 'preceding_purpose'
+  relational:
+    - 'trip_id'
+    - 'person_id'

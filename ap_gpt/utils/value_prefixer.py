@@ -1,3 +1,5 @@
+from typing import List
+
 class ValuePrefixer:
     """
         Add colname to values like a prefix
@@ -12,14 +14,14 @@ class ValuePrefixer:
         return data[col_name].apply(lambda x: x.replace(f"{col_name}_", ""))
 
     @staticmethod
-    def transform_all(data, exclude=[], include=[]):
+    def transform_all(data, exclude: List[str] = [], include: List[str] =[]):
         for col in data.columns:
             if col not in exclude and (len(include) == 0 or col in include):
-                data[col] = ValuePrefixer.transform(col)
+                data[col] = ValuePrefixer.transform(data, col)
         return data
 
     @staticmethod
-    def inverse_transform_all(data, exclude=[], include=[]):
+    def inverse_transform_all(data, exclude: List[str] =[], include: List[str] =[]):
         for col in data.columns:
             if col not in exclude and (len(include) == 0 or col in include):
                 data[col] = ValuePrefixer.inverse_transform(col)

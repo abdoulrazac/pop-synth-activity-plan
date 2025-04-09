@@ -55,23 +55,23 @@ DATA_RAW_HOUSEHOLD_FILE_NAME = "household.csv"
 DATA_RAW_PERSON_FILE_NAME = "persons.csv"
 DATA_RAW_TRIP_FILE_NAME = "trips.csv"
 
-DATA_HOUSEHOLD_FILE_NAME = "household.csv"
-DATA_PERSON_FILE_NAME = "person.csv"
-DATA_TRIP_FILE_NAME = "trip.csv"
+DATA_HOUSEHOLD_FILE_NAME = "household.parquet"
+DATA_PERSON_FILE_NAME = "person.parquet"
+DATA_TRIP_FILE_NAME = "trip.parquet"
 
-DATA_HOUSEHOLD_PROCESSED_FILE_NAME = "processed_household.csv"
-DATA_PERSON_PROCESSED_FILE_NAME = "processed_person.csv"
-DATA_TRIP_PROCESSED_FILE_NAME = "processed_trip.csv"
+DATA_HOUSEHOLD_PROCESSED_FILE_NAME = "processed_household.parquet"
+DATA_PERSON_PROCESSED_FILE_NAME = "processed_person.parquet"
+DATA_TRIP_PROCESSED_FILE_NAME = "processed_trip.parquet"
 
-DATA_MERGED_FILE_NAME = "merged_data.csv"
+DATA_MERGED_FILE_NAME = "merged_data.parquet"
 
-TRAIN_DATA_FILE_NAME = "train_data.csv"
-TEST_DATA_FILE_NAME = "test_data.csv"
-VALIDATION_DATA_FILE_NAME = "validation_data.csv"
+TRAIN_DATA_FILE_NAME = "train_data.parquet"
+TEST_DATA_FILE_NAME = "test_data.parquet"
+VALIDATION_DATA_FILE_NAME = "validation_data.parquet"
 
-TRAIN_DATA_AS_SEQUENCE_FILE_NAME = "train_data_as_sequence.csv"
-TEST_DATA_AS_SEQUENCE_FILE_NAME = "test_data_as_sequence.csv"
-VALIDATION_DATA_AS_SEQUENCE_FILE_NAME = "validation_data_as_sequence.csv"
+TRAIN_DATA_AS_SEQUENCE_FILE_NAME = "train_data_as_sequence.parquet"
+TEST_DATA_AS_SEQUENCE_FILE_NAME = "test_data_as_sequence.parquet"
+VALIDATION_DATA_AS_SEQUENCE_FILE_NAME = "validation_data_as_sequence.parquet"
 
 TRAIN_TEST_SPLIT_RATIO = 0.8
 VALIDATION_SPLIT_RATIO = 0.2
@@ -79,8 +79,8 @@ VALIDATION_SPLIT_RATIO = 0.2
 # MODEL TRAINING ------------------------------------------------------
 
 TOKENIZER_FILE_NAME = "tokenizer.txt"
-TRAIN_ENCODED_DATA_FILE_NAME = "train_encoded_data.csv"
-TEST_ENCODED_DATA_FILE_NAME = "test_encoded_data.csv"
+TRAIN_ENCODED_DATA_FILE_NAME = "train_encoded_data.parquet"
+TEST_ENCODED_DATA_FILE_NAME = "test_encoded_data.parquet"
 
 # ACTION -------------------------------------------------------
 

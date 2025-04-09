@@ -30,9 +30,9 @@ class TripDataProcessingArtifact:
 
 @dataclass
 class DataProcessingArtifact:
-    household_processed_data_file_path: Union[str, HouseholdDataProcessingArtifact]
-    person_processed_data_file_path: Union[str, PersonDataProcessingArtifact]
-    trip_processed_data_file_path: Union[str, TripDataProcessingArtifact]
+    household_processed_data_file_path: str
+    person_processed_data_file_path: str
+    trip_processed_data_file_path: str
 
 
 @dataclass

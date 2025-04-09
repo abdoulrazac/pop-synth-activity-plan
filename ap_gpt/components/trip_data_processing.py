@@ -26,6 +26,7 @@ class TripDataProcessing(DataProcessingBase):
             self.data_ingestion_artifact = data_ingestion_artifact
             self.data_processing_config = data_processing_config
             self.table_name = TABLE_TRIP_NAME
+            self.person_id_col = self._schema_config[TABLE_PERSON_NAME][SCHEMA_IDENTIFIER_NAME]
         except Exception as e:
             raise APException(e, sys)
 
@@ -82,33 +83,32 @@ class TripDataProcessing(DataProcessingBase):
         """
 
         try:
-            person_id_col = self._schema_config[TABLE_PERSON_NAME][SCHEMA_IDENTIFIER_NAME]
 
-            data = data.sort_values(by=[person_id_col, 'departure_time'])
-            data['trip_rank'] = data.sort_values(by=[person_id_col, 'departure_time']).groupby(
-                person_id_col).cumcount()
+            data = data.sort_values(by=[self.person_id_col, 'departure_time'])
+            data['trip_rank'] = data.sort_values(by=[self.person_id_col, 'departure_time']).groupby(
+                self.person_id_col).cumcount()
 
             trip_actions = dict()
 
             ## Initial purpose
             trip_actions["initial_purpose"] = data.loc[
-                data['trip_rank'] == 0, [person_id_col, 'trip_rank', 'preceding_purpose', 'departure_time']]
+                data['trip_rank'] == 0, [self.person_id_col, 'trip_rank', 'preceding_purpose', 'departure_time']]
             trip_actions["initial_purpose"] = trip_actions["initial_purpose"].rename(
                 columns={'preceding_purpose': 'action', 'departure_time': 'duration'})
             trip_actions["initial_purpose"]['distance'] = 0
             trip_actions["initial_purpose"] = trip_actions["initial_purpose"][
-                [person_id_col, 'trip_rank', 'action', 'duration', 'distance']]
+                [self.person_id_col, 'trip_rank', 'action', 'duration', 'distance']]
             trip_actions["initial_purpose"]['trip_action_rank'] = 0
 
             ## Current travel mode
-            trip_actions["mode"] = data[[person_id_col, 'trip_rank', 'mode', 'trip_duration', 'euclidean_distance']]
+            trip_actions["mode"] = data[[self.person_id_col, 'trip_rank', 'mode', 'trip_duration', 'euclidean_distance']]
             trip_actions["mode"] = trip_actions["mode"].rename(
                 columns={'mode': 'action', 'euclidean_distance': 'distance', 'trip_duration': 'duration'})
             trip_actions["mode"]['trip_action_rank'] = 1
 
             ## Current activity
             trip_actions["activity"] = data[
-                [person_id_col, 'trip_rank', 'following_purpose', 'activity_duration', 'arrival_time', 'is_last_trip']]
+                [self.person_id_col, 'trip_rank', 'following_purpose', 'activity_duration', 'arrival_time', 'is_last_trip']]
             trip_actions["activity"] = trip_actions["activity"].rename(
                 columns={'following_purpose': 'action', 'activity_duration': 'duration'})
             trip_actions["activity"]['distance'] = 0
@@ -119,15 +119,15 @@ class TripDataProcessing(DataProcessingBase):
             trip_actions["activity"]['duration'] = trip_actions["activity"]['duration'].apply(
                 lambda x: (4 * 60 * 60 + x) if x < 0 else x)  # A revoir avec les en
             trip_actions["activity"] = trip_actions["activity"][
-                [person_id_col, 'trip_rank', 'action', 'duration', 'distance']]
+                [self.person_id_col, 'trip_rank', 'action', 'duration', 'distance']]
             trip_actions["activity"]['trip_action_rank'] = 2
 
             ## Merge all actions
             df_actions = pd.concat(trip_actions.values())
-            df_actions = df_actions.sort_values(by=[person_id_col, 'trip_rank', 'trip_action_rank'])
+            df_actions = df_actions.sort_values(by=[self.person_id_col, 'trip_rank', 'trip_action_rank'])
             df_actions['person_action_id'] = df_actions.sort_values(
-                by=[person_id_col, 'trip_rank', 'trip_action_rank']).groupby(person_id_col).cumcount()
-            df_actions = df_actions[[person_id_col, 'person_action_id', 'action', 'duration', 'distance']]
+                by=[self.person_id_col, 'trip_rank', 'trip_action_rank']).groupby(self.person_id_col).cumcount()
+            df_actions = df_actions[[self.person_id_col, 'person_action_id', 'action', 'duration', 'distance']]
 
             return df_actions
 
@@ -163,10 +163,24 @@ class TripDataProcessing(DataProcessingBase):
             return pd.concat([dat, eot], ignore_index=True)
 
         try:
-            person_id_col = self._schema_config[TABLE_PERSON_NAME][SCHEMA_IDENTIFIER_NAME]
-            return data.groupby(by=[person_id_col], as_index=False).apply(add_eot).reset_index(drop=True)
+            self.person_id_col = self._schema_config[TABLE_PERSON_NAME][SCHEMA_IDENTIFIER_NAME]
+            return data.groupby(by=[self.person_id_col], as_index=False).apply(add_eot).reset_index(drop=True)
         except Exception as e:
             raise APException(e, sys)
+
+    def pivot_wider(self, data: pd.DataFrame) -> pd.DataFrame:
+
+        # Pivot wider actions table to have one row per person and ordered actions
+        nb_actions = data['person_action_id'].max()
+
+        df_actions = data.pivot(index=self.person_id_col, columns='person_action_id').reset_index()
+        df_actions.columns = [f"{x}_{y}" for x, y in df_actions.columns]
+        df_actions = df_actions.rename(columns={f"{self.person_id_col}_": self.person_id_col})
+        df_actions = df_actions.sort_values(by=[self.person_id_col])
+        df_actions = df_actions[[self.person_id_col] + np.concatenate(
+            ([[f"action_{i}", f"duration_{i}", f"distance_{i}"] for i in range(nb_actions)])
+        ).tolist()]
+        return df_actions
 
     def initiate_data_processing(self) -> Optional[TripDataProcessingArtifact]:
         """
@@ -197,6 +211,10 @@ class TripDataProcessing(DataProcessingBase):
             df_trip[TABLE_TRIP_DURATION_NAME] = self.cut_duration(df_trip[TABLE_TRIP_DURATION_NAME])
             df_trip[TABLE_TRIP_DISTANCE_NAME] = self.cut_distance(df_trip[TABLE_TRIP_DISTANCE_NAME])
             df_trip = self.add_end_of_action(df_trip)
+
+            # Pivot wider
+            logging.info("Pivoting wider the actions table")
+            df_trip = self.pivot_wider(df_trip)
 
             logging.info("Create trip DataProcessing artifact")
             data_processing_artifact = TripDataProcessingArtifact(

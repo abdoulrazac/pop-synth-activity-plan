@@ -1,5 +1,7 @@
 import sys
+import os
 import pandas as pd
+from from_root import from_root
 
 from ap_gpt.constants import SCHEMA_FILE_PATH, TABLE_PERSON_NAME, SCHEMA_IDENTIFIER_NAME, TABLE_HOUSEHOLD_NAME
 from ap_gpt.entity.artifact_entity import (HouseholdDataProcessingArtifact, PersonDataProcessingArtifact,
@@ -30,7 +32,7 @@ class DataMerging:
         self.person_data_processing_artifact = person_data_processing_artifact
         self.trip_data_processing_artifact = trip_data_processing_artifact
         self.data_merging_config = data_merging_config
-        self._schema_config = read_yaml_file(file_path=SCHEMA_FILE_PATH)
+        self._schema_config = read_yaml_file(file_path=os.path.join(from_root(), SCHEMA_FILE_PATH))
 
     def initiate_data_merging(self) -> DataMergingArtifact:
         """

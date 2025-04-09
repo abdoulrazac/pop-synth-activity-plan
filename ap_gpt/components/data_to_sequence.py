@@ -1,6 +1,8 @@
 import sys
+import os
 import pandas as pd
 from typing import Union, List, Tuple
+from from_root import from_root
 
 from ap_gpt.ap_exception import APException
 from ap_gpt.constants import *
@@ -23,7 +25,7 @@ class DataToSequence:
             data_transformation_config (DataToSequenceConfig): Configuration for data transformation.
         """
 
-        self._schema_config = read_yaml_file(file_path=SCHEMA_FILE_PATH)
+        self._schema_config = read_yaml_file(file_path=os.path.join(from_root(), SCHEMA_FILE_PATH))
         self.data_tokenizer_artifact = data_tokenizer_artifact
         self.data_to_sequence_config = data_to_sequence_config
         self.table_name = TABLE_TRIP_NAME

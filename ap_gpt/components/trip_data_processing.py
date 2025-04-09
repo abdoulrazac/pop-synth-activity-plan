@@ -114,7 +114,7 @@ class TripDataProcessing(DataProcessingBase):
             trip_actions["activity"]['distance'] = 0
             trip_actions["activity"]['duration'] = trip_actions["activity"][
                 ['duration', 'arrival_time', 'is_last_trip']].apply(
-                lambda x: 24 * 60 * 60 - x[1] if x[2] == 1 else x[0],
+                lambda x: 24 * 60 * 60 - x.iloc[1] if x.iloc[2] == 1 else x.iloc[0],
                 axis=1)
             trip_actions["activity"]['duration'] = trip_actions["activity"]['duration'].apply(
                 lambda x: (4 * 60 * 60 + x) if x < 0 else x)  # A revoir avec les en
@@ -134,7 +134,7 @@ class TripDataProcessing(DataProcessingBase):
         except Exception as e:
             raise APException(e, sys)
 
-    def add_end_of_action(self, data: pd.DataFrame) -> pd.DataFrame :
+    def add_end_of_action(self, data: pd.DataFrame) -> pd.DataFrame:
         """
         Method Name : add_end_of_action
         Description : This method adds an end-of-trip (EOT) token to the dataframe for each person.
@@ -146,7 +146,7 @@ class TripDataProcessing(DataProcessingBase):
             pd.DataFrame: Dataframe with added end-of-trip tokens.
         """
 
-        def _add_eot(dat: pd.DataFrame) -> pd.DataFrame:
+        def add_eot(dat: pd.DataFrame) -> pd.DataFrame:
             """
             Helper function to add end-of-trip token to a single person's data.
 
@@ -157,14 +157,14 @@ class TripDataProcessing(DataProcessingBase):
                 pd.DataFrame: Dataframe with added end-of-trip token.
             """
             max_rank = dat['person_action_id'].max()
-            eot = dat.loc[dat['person_action_id'] == max_rank]
+            eot = dat.loc[dat['person_action_id'] == max_rank].copy()
             eot.iloc[:, 2:] = EOT_TOKEN.values()
             eot['person_action_id'] = max_rank + 1
-            return dat.append(eot, ignore_index=True)
+            return pd.concat([dat, eot], ignore_index=True)
 
         try:
             person_id_col = self._schema_config[TABLE_PERSON_NAME][SCHEMA_IDENTIFIER_NAME]
-            return data.groupby(by=[person_id_col], as_index=False).apply(_add_eot).reset_index(drop=True)
+            return data.groupby(by=[person_id_col], as_index=False).apply(add_eot).reset_index(drop=True)
         except Exception as e:
             raise APException(e, sys)
 
@@ -181,15 +181,15 @@ class TripDataProcessing(DataProcessingBase):
             logging.info("Reading data from CSV files")
             df_trip = read_data(self.data_ingestion_artifact.trip_data_file_path)
 
+            # Keep only the required columns
+            logging.info("Keeping only the trip's required columns")
+            df_trip = self.keep_required_columns(df_trip, TABLE_TRIP_NAME)
+
             # Validate the data
             logging.info("Validating trip data")
             is_valid_data = self.is_valid_data(df_trip, self.table_name, other_columns=TABLE_TRIP_REQUIRED_COLUMNS)
             if not is_valid_data:
                 raise ValueError(f"Invalid data in trip data: {self.table_name}")
-
-            # Keep only the required columns
-            logging.info("Keeping only the trip's required columns")
-            df_trip = self.keep_required_columns(df_trip, TABLE_TRIP_NAME)
 
             # recode categorical trip columns
             logging.info("Recode trip columns (action + duration + distance + add_end_action")

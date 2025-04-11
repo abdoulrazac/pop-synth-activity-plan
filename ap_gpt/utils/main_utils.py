@@ -106,7 +106,7 @@ def read_data(file_path: str, index_col=None, is_array:bool=False) -> Union[pd.D
     try:
         extension = os.path.splitext(file_path)[1]
 
-        if is_array:
+        if is_array or extension == ".npy":
             return np.load(file_path)
         elif extension == ".csv" or extension == ".txt":
             return pd.read_csv(file_path, index_col=index_col)
@@ -138,7 +138,7 @@ def save_data(data: Union[pd.DataFrame, np.ndarray], file_path: str, index: bool
         extension = os.path.splitext(file_path)[1]
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
-        if isinstance(data, np.ndarray):
+        if isinstance(data, np.ndarray) or extension == ".npy":
             np.save(file_path, data)
         elif extension == ".csv" or extension == ".txt":
             data.to_csv(file_path, index=index)

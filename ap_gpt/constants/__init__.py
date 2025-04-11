@@ -17,10 +17,10 @@ MAX_TRIP_NUMBER = 12
 RANDOM_SEED = 123
 
 # TOKENS -------------------------------------------------------------------
-PAD_TOKEN = {"ACTION" : "<ACTION_PAD>", "duration" : "<DURATION_PAD", "DISTANCE" : "<DISTANCE_PAD>"}
+PAD_TOKEN = {"ACTION" : "<ACTION_PAD>", "DURATION" : "<DURATION_PAD>", "DISTANCE" : "<DISTANCE_PAD>"}
 UNK_TOKEN = "<UNK>"
 SOT_TOKEN = "<SOT>"
-EOT_TOKEN = {"ACTION" : "<ACTION_EOT>", "duration" : "<DURATION_EOT>", "DISTANCE" : "<DISTANCE_EOT>"}
+EOT_TOKEN = {"ACTION" : "<ACTION_EOT>", "DURATION" : "<DURATION_EOT>", "DISTANCE" : "<DISTANCE_EOT>"}
 
 # Pipeline constants ------------------------------------------------------
 ARTIFACT_DIR_NAME = "artifact"
@@ -79,8 +79,8 @@ VALIDATION_SPLIT_RATIO = 0.2
 # MODEL TRAINING ------------------------------------------------------
 
 TOKENIZER_FILE_NAME = "tokenizer.txt"
-TRAIN_ENCODED_DATA_FILE_NAME = "train_encoded_data.parquet"
-TEST_ENCODED_DATA_FILE_NAME = "test_encoded_data.parquet"
+TRAIN_ENCODED_DATA_FILE_NAME = "train_encoded_data.npy"
+TEST_ENCODED_DATA_FILE_NAME = "test_encoded_data.npy"
 
 # ACTION -------------------------------------------------------
 

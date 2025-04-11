@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from typing import Union
+from typing import Union, Tuple
+
 
 @dataclass
 class DataIngestionArtifact:
@@ -59,6 +60,8 @@ class DataTokenizerArtifact:
     tokenizer_file_path: str
     train_encoded_data_file_path: str
     test_encoded_data_file_path: str
+    pad_token_idx: Tuple[int, int, int]
+    nb_actions: int
 
 @dataclass
 class MetricArtifact:

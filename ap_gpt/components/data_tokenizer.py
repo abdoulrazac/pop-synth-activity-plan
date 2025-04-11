@@ -172,8 +172,10 @@ class DataTokenizer:
         """
         if type(words) == str:
             return self.word2idx.get(words, self.word2idx[self.unk_token])
-        elif type(words) == list or type(words) == tuple:
+        elif type(words) == list:
             return [self.word2idx.get(word, self.word2idx[self.unk_token]) for word in words]
+        elif type(words) == tuple:
+            return tuple([self.word2idx.get(word, self.word2idx[self.unk_token]) for word in words])
         elif type(words) == np.array or type(words) == np.ndarray:
             out = [self.word2idx.get(word, self.word2idx[self.unk_token]) for word in words.flatten()]
             return np.array(out).reshape(words.shape)
@@ -194,8 +196,10 @@ class DataTokenizer:
         """
         if type(index) == int:
             return self.idx2word.get(index, self.unk_token)
-        elif type(index) == list or type(index) == tuple:
+        elif type(index) == list :
             return [self.idx2word.get(i, self.unk_token) for i in index]
+        elif type(index) == tuple:
+            return tuple([self.idx2word.get(i, self.unk_token) for i in index])
         elif type(index) == np.array or type(index) == np.ndarray:
             out = [self.idx2word.get(i, self.unk_token) for i in index.flatten()]
             return np.array(out).reshape(index.shape)
@@ -286,7 +290,26 @@ class DataTokenizer:
                 self.idx2word[int(idx)] = word
             self.vocab_size = len(self.word2idx)
 
-    def initiate_tokenizer(self) -> DataTokenizerArtifact:
+    def fill_na_with_pad(self, data:pd.DataFrame):
+        """
+        Fills missing values in the data with the pad token.
+
+        Args:
+            data (pd.DataFrame): The input data to fill missing values.
+
+        Returns:
+            Union (pd.DataFrame): The data with missing values filled with the pad token.
+        """
+        data[[c for c in data.columns if c.startswith("action_")]] = data[
+            [c for c in data.columns if c.startswith("action_")]].fillna(self.pad_token["ACTION"])
+        data[[c for c in data.columns if c.startswith("duration_")]] = data[
+            [c for c in data.columns if c.startswith("duration_")]].fillna(self.pad_token["DURATION"])
+        data[[c for c in data.columns if c.startswith("distance_")]] = data[
+            [c for c in data.columns if c.startswith("distance_")]].fillna(self.pad_token["DISTANCE"])
+
+        return data
+
+    def initiate_tokenization(self) -> DataTokenizerArtifact:
         """
         Initiates the tokenizer by loading the vocabulary from a file if is_train is False.
         If is_train is True, it builds the vocabulary from the training data.
@@ -296,23 +319,33 @@ class DataTokenizer:
             df_train = read_data(self.data_splitting_artifact.train_data_file_path)
             df_test = read_data(self.data_splitting_artifact.test_data_file_path)
 
-            logging.info("Tokenizing data")
-            self.add_words(df_train[[c for c in df_train.columns if not c.startswith(('action', 'duration', 'distance'))]].values)
-            self.add_words(df_train["action"].values, name="action")
-            self.add_words(df_train["duration"].values, name="duration")
-            self.add_words(df_train["distance"].values, name="distance")
+            logging.info("Filling missing values with pad token")
+            df_train = self.fill_na_with_pad(df_train)
+            df_test = self.fill_na_with_pad(df_test)
+
+            logging.info("Adding words to the tokenizer")
+            self.add_words(df_train[[c for c in df_train.columns if not c.startswith(('action_', 'duration_', 'distance_'))]].values)
+            self.add_words(df_train[[c for c in df_train.columns if c.startswith("action_")]].values, name="action")
+            self.add_words(df_train[[c for c in df_train.columns if c.startswith("duration_")]].values, name="duration")
+            self.add_words(df_train[[c for c in df_train.columns if c.startswith("distance_")]].values, name="distance")
 
             logging.info("Tokenizing data completed")
             df_train_encoded = self.encode(df_train.values)
             df_test_encoded = self.encode(df_test.values)
+            pad_token_idx : Tuple[int, int, int] = self.encode(tuple(self.pad_token.values()))
 
             logging.info("Saving tokenizer")
             self.save(self.data_tokenizer_config.tokenizer_file_path)
+
+            logging.info("Creating DataTokenizerArtifact")
+            nb_actions = len([c for c in df_train.columns if c.startswith("action_")])
 
             data_tokenizer_artifact = DataTokenizerArtifact(
                 tokenizer_file_path=self.data_tokenizer_config.tokenizer_file_path,
                 train_encoded_data_file_path=self.data_tokenizer_config.train_encoded_data_file_path,
                 test_encoded_data_file_path=self.data_tokenizer_config.test_encoded_data_file_path,
+                pad_token_idx = pad_token_idx,
+                nb_actions= nb_actions
             )
 
             logging.info("Save encoded data")

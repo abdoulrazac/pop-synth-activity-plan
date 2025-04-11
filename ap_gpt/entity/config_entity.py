@@ -133,9 +133,9 @@ class DataToSequenceConfig:
         data_store_path, "Y_" + VALIDATION_DATA_AS_SEQUENCE_FILE_NAME
     )
 
-    max_seq_len = MAX_SEQ_LENGTH,
-    action_nb_cols = ACTION_NB_COLS,
-    drop_pad = True
+    max_seq_len : int = MAX_SEQ_LENGTH
+    action_nb_cols : int = ACTION_NB_COLS
+    drop_pad: bool = True
 
 @dataclass
 class DataTokenizerConfig:

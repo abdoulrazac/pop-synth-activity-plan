@@ -54,9 +54,6 @@ class PersonDataProcessing(DataProcessingBase):
             logging.info("Recode person numerical columns")
             df_person = self.cut_numerical_columns(df_person, self.table_name)
 
-
-            logging.info(f"Age unique values: {df_person['age'].unique()}")
-
             logging.info("Create DataProcessing artifact")
             data_processing_artifact = PersonDataProcessingArtifact(
                 person_processed_data_file_path = self.data_processing_config.person_processed_data_file_path,

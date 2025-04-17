@@ -1,54 +1,60 @@
+import os.path
 import sys
-
-import torch
-import torch.nn as nn
-import pandas as pd
-import numpy as np
-import plotnine as pn
-
+from pathlib import Path
 from typing import Dict, Tuple
 
+import numpy as np
+import pandas as pd
+import plotnine as pn
+import torch
+import torch.nn as nn
 from torch import Tensor
+from torchmetrics.classification import Accuracy, Precision, Recall, F1Score
 
-from ap_gpt.components.data_tokenizer import DataTokenizer
-from ap_gpt.entity.artifact_entity import DataToSequenceArtifact, ModelTrainerArtifact
-from ap_gpt.entity.config_entity import ModelConfig, ModelTrainerConfig
-from ap_gpt.models.ap_model_base import APBaseModel
-from ap_gpt.utils.data_loader import DataLoader
 from ap_gpt.ap_exception import APException
 from ap_gpt.ap_logger import logging
+from ap_gpt.components.data_tokenizer import DataTokenizer
+from ap_gpt.entity.artifact_entity import DataToSequenceArtifact, ModelTrainerArtifact, DataTokenizerArtifact, \
+    MetricArtifact, ModelMetrics
+from ap_gpt.entity.config_entity import ModelTrainerConfig
+from ap_gpt.utils.data_loader import DataLoader
 from ap_gpt.utils.main_utils import read_data
 
 
 class ModelTrainer:
     def __init__(
             self,
-            model : APBaseModel,
-            model_config : ModelConfig,
-            tokenizer : DataTokenizer,
+            model,
+            model_trainer_config : ModelTrainerConfig,
+            data_tokenizer_artifact : DataTokenizerArtifact,
             data_to_sequence_artifact: DataToSequenceArtifact,
-            model_trainer_config : ModelTrainerConfig = ModelTrainerConfig(),
     ):
-        self.model_config = model_config
-        self.data_to_sequence_artifact = data_to_sequence_artifact
         self.model_trainer_config = model_trainer_config
-        self.tokenizer = tokenizer
+        self.data_to_sequence_artifact = data_to_sequence_artifact
+
+        # Load the tokenizer
+        self.tokenizer = DataTokenizer()
+        self.tokenizer.load(data_tokenizer_artifact.tokenizer_file_path)
 
 
-        self.model = model(model_config).to(model_config.device)
+        self.model = model
 
-        self.device = model_config.device
-        self.name_vocab_size = model_config.name_vocab_size
-        self.pad_token_idx = model_config.pad_token_idx
-        self.max_len = model_config.max_len
-        self.action_start_idx = model_config.action_start_idx
+        self.device = model_trainer_config.device
+        self.name_vocab_size = model_trainer_config.name_vocab_size
+        self.pad_token_idx = model_trainer_config.pad_token_idx
+        self.max_sequence_length = model_trainer_config.max_sequence_length
+        self.action_start_idx = model_trainer_config.action_start_idx
 
+        # Best model path. Create parent directory if it does not exist
         self.best_model_path = model_trainer_config.best_model_path
+        os.makedirs(Path(self.best_model_path).parent, exist_ok=True)
+
 
         # Optimization
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.01)
-        self.criterion = nn.CrossEntropyLoss().to(model_config.device)
-        self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=40, gamma=0.1)
+        self.criterion = nn.CrossEntropyLoss().to(model_trainer_config.device)
+        # self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=40, gamma=0.1)
+        self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=lambda step: 0.85 ** (step // 10))
 
         self.losses = {'train': [], 'test': []}
         self.best_loss = float('inf')
@@ -59,19 +65,22 @@ class ModelTrainer:
         """
         try:
             logging.info("Create data loader")
-            return DataLoader(X, y, batch_size=self.model_config.batch_size, shuffle=shuffle)
+            return DataLoader(X, y, batch_size=self.model_trainer_config.batch_size, shuffle=shuffle)
         except Exception as e:
             raise APException(e, sys)
 
     def value_to_vector(self, value) -> Tuple[Tensor, Tensor, Tensor]:
-        y1 = torch.eye(self.name_vocab_size['action']).to(self.device)[value[:, 0]]
-        y2 = torch.eye(self.name_vocab_size['duration']).to(self.device)[value[:, 1]]
-        y3 = torch.eye(self.name_vocab_size['distance']).to(self.device)[value[:, 2]]
+        y1 = torch.eye(self.name_vocab_size['action']).to(self.device)[value[:, 0].long()]
+        y2 = torch.eye(self.name_vocab_size['duration']).to(self.device)[value[:, 1].long()]
+        y3 = torch.eye(self.name_vocab_size['distance']).to(self.device)[value[:, 2].long()]
 
         return y1, y2, y3
 
     def save_best_model(self) -> None:
         torch.save(self.model.state_dict(), self.best_model_path)
+
+    def load_best_model(self) -> None:
+        self.model.load_state_dict(torch.load(self.best_model_path))
 
     def save_model(self, path) -> None:
         torch.save(self.model.state_dict(), path)
@@ -102,17 +111,16 @@ class ModelTrainer:
         losses = []
         for X, y in data_loader:
 
-            X = X.to(self.device)
-            y = y.to(self.device)
+            X = torch.tensor(X).to(self.device)
+            y = torch.tensor(y).to(self.device)
 
-            if is_training:
-                self.optimizer.zero_grad()
 
             y1, y2, y3 = self.value_to_vector(y)
             y_hat = self.model(X)
             loss = self.criterion(y_hat[0], y1) + self.criterion(y_hat[1], y2) + self.criterion(y_hat[2], y3)
 
             if is_training:
+                self.model.zero_grad(set_to_none=True)
                 loss.backward()
                 self.optimizer.step()
 
@@ -120,10 +128,15 @@ class ModelTrainer:
 
         loss = torch.mean(torch.tensor(losses))
         if verbose:
-            print(f"{name} : {np.mean(loss)}")
+            print(f"{name} : {torch.mean(loss)}")
         return torch.mean(loss)
 
-    def train(self, train_loader: DataLoader, test_dataloader : DataLoader, epochs=10) -> Dict[str, list]:
+    def train(self,
+              train_loader: DataLoader,
+              test_dataloader : DataLoader,
+              epochs=10,
+              verbose: bool = True
+        ) -> Dict[str, list]:
         for epoch in range(epochs):
 
             train_loss = self.forward(train_loader, is_training=True, name="Train Loss", verbose=False)
@@ -135,22 +148,114 @@ class ModelTrainer:
             if test_loss < self.best_loss:
                 self.best_loss = test_loss
                 self.save_best_model()
-
-            print(
-                f"Epoch : {epoch + 1}/{epochs} ; LR : {self.optimizer.param_groups[0]['lr']} ; Train Loss : {train_loss} ; Test Loss : {test_loss} ; Best Loss : {self.best_loss}")
+            if verbose and epoch % 10 == 0:
+                print(
+                    f"Epoch : {epoch + 1}/{epochs} ; LR : {self.optimizer.param_groups[0]['lr']} ; " +
+                    f"Train Loss : {train_loss} ; Test Loss : {test_loss} ; Best Loss : {self.best_loss}"
+                )
             if self.scheduler is not None:
                 self.scheduler.step()
 
         return self.losses
 
-    def evaluate(self, test_loader: DataLoader):
+    @staticmethod
+    def compute_metrics(y_trues: Tensor, y_preds: Tensor, num_classes: int = 1) -> ModelMetrics:
+        """
+        This method of ModelTrainer class is responsible for computing the metrics
+
+        Args:
+            y_trues: Tensor. True labels
+            y_preds: Tensor. Predicted labels
+            num_classes: int. Number of classes. Default is 1.
+        """
+        try:
+            accuracy = Accuracy(task="multiclass", num_classes=num_classes, average='macro')
+            precision = Precision(task="multiclass", num_classes=num_classes, average='macro')
+            recall = Recall(task="multiclass", num_classes=num_classes, average='macro')
+            f1 = F1Score(task="multiclass", num_classes=num_classes, average='macro')
+
+            accuracy_score = accuracy(y_trues, y_preds)
+            precision_score = precision(y_trues, y_preds)
+            recall_score = recall(y_trues, y_preds)
+            f1_score = f1(y_trues, y_preds)
+
+            return ModelMetrics(
+                accuracy=accuracy_score.item(),
+                precision=precision_score.item(),
+                recall=recall_score.item(),
+                f1_score=f1_score.item()
+            )
+        except Exception as e:
+            raise APException(e, sys)
+
+    def evaluate(self, test_loader: DataLoader) -> MetricArtifact:
         """
         This method of ModelTrainer class is responsible for evaluating the model
         """
         try:
             logging.info("Evaluating the model")
-            test_loss = self.forward(test_loader, is_training=False, name="Test Loss", verbose=True)
-            return test_loss
+
+            # Load the best model
+            self.load_best_model()
+
+            # Set the model to evaluation mode
+            self.model.eval()
+            y_trues = { # noqa
+                "action": torch.empty((0, self.name_vocab_size['action']), device=self.device),
+                "duration": torch.empty((0, self.name_vocab_size['duration']), device=self.device),
+                "distance": torch.empty((0, self.name_vocab_size['distance']), device=self.device)
+            }
+            y_preds = { # noqa
+                "action": torch.empty((0, self.name_vocab_size['action']), device=self.device),
+                "duration": torch.empty((0, self.name_vocab_size['duration']), device=self.device),
+                "distance": torch.empty((0, self.name_vocab_size['distance']), device=self.device)
+            }
+
+            for X, y in test_loader:
+                X = X.to(self.device) if isinstance(X, Tensor) else torch.tensor(X, device=self.device)
+                y = y.to(self.device) if isinstance(y, Tensor) else torch.tensor(y, device=self.device)
+
+                y1, y2, y3 = self.value_to_vector(y)
+                y_pred = self.model(X)
+
+                y1_pred, y2_pred, y3_pred = y_pred[0], y_pred[1], y_pred[2]
+
+                # Concatenate the tensors
+                y_trues["action"] = torch.cat((y_trues["action"], y1), dim=0) # noqa
+                y_trues["duration"] = torch.cat((y_trues["duration"], y2), dim=0)
+                y_trues["distance"] = torch.cat((y_trues["distance"], y3), dim=0)
+
+                y_preds["action"] = torch.cat((y_preds["action"], y1_pred), dim=0) # noqa
+                y_preds["duration"] = torch.cat((y_preds["duration"], y2_pred), dim=0)
+                y_preds["distance"] = torch.cat((y_preds["distance"], y3_pred), dim=0)
+
+            # Calculate accuracy for each output using torchmetrics
+            action_metrics = self.compute_metrics(
+                torch.argmax(y_trues["action"], dim=1),
+                torch.argmax(y_preds["action"], dim=1),
+                num_classes=self.name_vocab_size['action']
+            )
+
+            duration_metrics = self.compute_metrics(
+                torch.argmax(y_trues["duration"], dim=1),
+                torch.argmax(y_preds["duration"], dim=1),
+                num_classes=self.name_vocab_size['duration']
+            )
+
+            distance_metrics = self.compute_metrics(
+                torch.argmax(y_trues["distance"], dim=1),
+                torch.argmax(y_preds["distance"], dim=1),
+                num_classes=self.name_vocab_size['distance']
+            )
+
+            # Create a MetricArtifact object
+            return MetricArtifact(
+                action_metrics=action_metrics,
+                duration_metrics=duration_metrics,
+                distance_metrics=distance_metrics,
+                best_model_test_loss=self.best_loss,
+            )
+
         except Exception as e:
             raise APException(e, sys)
 
@@ -164,7 +269,7 @@ class ModelTrainer:
 
         return (
                 pn.ggplot(df_plot)
-                + pn.aes(x='epoch', y='loss', color='type')
+                + pn.aes(x='epoch', y='loss', color='type') # noqa
                 + pn.geom_line(size=1)
                 + pn.scale_color_brewer(type='qualitative', palette=6,
                                         labels=lambda labs: [f"{x.title()}" for x in labs])
@@ -179,14 +284,14 @@ class ModelTrainer:
     def generate(self, X) -> np.ndarray:
         with torch.no_grad():
             idx = self.action_start_idx
-            while idx < self.max_len:
+            while idx < self.max_sequence_length:
                 y = self.model(torch.tensor(X).to(self.device))
                 y1, y2, y3 = torch.argmax(y[0], dim=1), torch.argmax(y[1], dim=1), torch.argmax(y[2], dim=1)
                 y1 = self.tokenizer.convert_index_from_name("action", y1.cpu().numpy())
                 y2 = self.tokenizer.convert_index_from_name("duration", y2.cpu().numpy())
                 y3 = self.tokenizer.convert_index_from_name("distance", y3.cpu().numpy())
 
-                X[:, idx:(idx + 3)] = np.stack((y1, y2, y3), axis=1)
+                X[:, idx:(idx + 3)] = np.stack((y1, y2, y3), axis=1) # noqa
                 idx += 3
         return X
 
@@ -196,22 +301,32 @@ class ModelTrainer:
         """
         try:
             logging.info("Load datasets")
-            x_train = read_data(self.data_to_sequence_artifact.train_x_data_as_sequence_file_path, is_array=True)
-            y_train = read_data(self.data_to_sequence_artifact.train_y_data_as_sequence_file_path, is_array=True)
-            x_test = read_data(self.data_to_sequence_artifact.test_x_data_as_sequence_file_path, is_array=True)
-            y_test = read_data(self.data_to_sequence_artifact.test_y_data_as_sequence_file_path, is_array=True)
+            x_train = read_data(self.data_to_sequence_artifact.train_x_data_as_sequence_file_path)
+            y_train = read_data(self.data_to_sequence_artifact.train_y_data_as_sequence_file_path)
+            x_test = read_data(self.data_to_sequence_artifact.test_x_data_as_sequence_file_path)
+            y_test = read_data(self.data_to_sequence_artifact.test_y_data_as_sequence_file_path)
 
             logging.info("Create data loaders")
             train_loader = self.create_data_loader(x_train, y_train, shuffle=True)
             test_loader = self.create_data_loader(x_test, y_test, shuffle=False)
 
             logging.info("Start training")
-            self.train(train_loader, test_loader, epochs=self.model_config.epochs)
+            self.train(
+                train_loader=train_loader,
+                test_dataloader=test_loader,
+                epochs=self.model_trainer_config.epochs,
+                verbose=self.model_trainer_config.verbose
+            )
 
             logging.info("Evaluate the model")
-            test_loss = self.evaluate(test_loader)
+            metric_artifact = self.evaluate(test_loader)
 
-            model_trainer_artifact = ModelTrainerArtifact()
+            model_trainer_artifact = ModelTrainerArtifact(
+                trained_model_file_path=self.model_trainer_config.best_model_path,
+                metric_artifact=metric_artifact,
+                model_trainer_config=self.model_trainer_config.to_json(),
+                model_name=self.model_trainer_config.model_name,
+            )
 
             return model_trainer_artifact
         except Exception as e:

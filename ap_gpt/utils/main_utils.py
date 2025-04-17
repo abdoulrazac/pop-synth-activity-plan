@@ -1,13 +1,12 @@
 import os
 import sys
-
-import torch
-import pandas as pd
-import numpy as np
-import dill
-import yaml
-
 from typing import Union
+
+import dill
+import numpy as np
+import pandas as pd
+import torch
+import yaml
 
 from ap_gpt.ap_exception import APException
 from ap_gpt.ap_logger import logging
@@ -107,7 +106,7 @@ def read_data(file_path: str, index_col=None, is_array:bool=False) -> Union[pd.D
         extension = os.path.splitext(file_path)[1]
 
         if is_array or extension == ".npy":
-            return np.load(file_path)
+            return np.load(file_path, allow_pickle=True)
         elif extension == ".csv" or extension == ".txt":
             return pd.read_csv(file_path, index_col=index_col)
         elif extension == ".json":
@@ -139,7 +138,7 @@ def save_data(data: Union[pd.DataFrame, np.ndarray], file_path: str, index: bool
         os.makedirs(os.path.dirname(file_path), exist_ok=True)
 
         if isinstance(data, np.ndarray) or extension == ".npy":
-            np.save(file_path, data)
+            np.save(file_path, data, allow_pickle=True)
         elif extension == ".csv" or extension == ".txt":
             data.to_csv(file_path, index=index)
         elif extension == ".json":
@@ -157,20 +156,23 @@ def save_data(data: Union[pd.DataFrame, np.ndarray], file_path: str, index: bool
         raise APException(e, sys)
 
 
-def split_data(data: pd.DataFrame, test_size: float, random_state=123) -> tuple:
+def split_data(data: pd.DataFrame, train_size : float = None, test_size: float = None, random_state=123) -> tuple:
     """
     Splits the data into training and testing sets.
 
     Args:
         data (pd.DataFrame): DataFrame to split.
-        test_size (float): Proportion of the dataset to include in the test split.
+        train_size (float): Proportion of the dataset to include in the train split.
+        test_size (float): Proportion of the dataset to include in the test split. Defaults to None.
         random_state (int, optional): Random seed for reproducibility. Defaults to 123.
 
     Returns:
         tuple: Training and testing DataFrames.
     """
     try:
-        train_data = data.sample(frac=1 - test_size, random_state=random_state)
+        if train_size is None and test_size is None:
+            raise ValueError("Either train_size or test_size must be provided.")
+        train_data = data.sample(frac=1 - test_size if not test_size is None else train_size , random_state=random_state)
         test_data = data.drop(train_data.index)
         return train_data, test_data
 
@@ -189,8 +191,8 @@ def get_device() -> torch.device:
     try:
         if torch.cuda.is_available():
             return torch.device("cuda")
-        elif torch.backends.mps.is_available():
-            return torch.device("mps")
+        # elif torch.backends.mps.is_available():
+        #     return torch.device("mps")
         else:
             return torch.device("cpu")
     except Exception as e:

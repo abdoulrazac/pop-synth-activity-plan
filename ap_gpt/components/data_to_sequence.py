@@ -1,10 +1,13 @@
 import sys
 import os
+
+import numpy as np
 import pandas as pd
 from typing import Union, List, Tuple
 from from_root import from_root
 
 from ap_gpt.ap_exception import APException
+from ap_gpt.components.data_tokenizer import DataTokenizer
 from ap_gpt.constants import *
 from ap_gpt.entity.artifact_entity import DataSplittingArtifact, DataTokenizerArtifact, DataToSequenceArtifact
 from ap_gpt.entity.config_entity import DataToSequenceConfig
@@ -32,9 +35,11 @@ class DataToSequence:
         self.pad_token_idx = data_tokenizer_artifact.pad_token_idx
         self.nb_actions = self.data_tokenizer_artifact.nb_actions
 
+        self.data_tokenizer = DataTokenizer()
+        self.data_tokenizer.load(data_tokenizer_artifact.tokenizer_file_path)
+
         self.data_to_sequence_config = data_to_sequence_config
         self.action_nb_cols = self.data_to_sequence_config.action_nb_cols
-        self.max_seq_len = self.data_to_sequence_config.max_seq_len
 
     def split_row_to_sequence(self,
                               sequence: Union[np.ndarray, List],
@@ -46,14 +51,15 @@ class DataToSequence:
         """
 
         x_list, y_list = list(), list()
-        start_idx = len(sequence) - self.nb_actions * self.action_nb_cols - 1
-        end_idx = len(sequence)
+        start_idx = len(sequence) - self.nb_actions * self.action_nb_cols
+        end_idx = len(sequence) - self.action_nb_cols
         for i in range(start_idx, end_idx, self.action_nb_cols):
             seq_x, seq_y = list(sequence[:i]), list(sequence[i:i + self.action_nb_cols])
             if drop_pad and ((seq_y[0] in self.pad_token_idx) or (seq_y[1] in self.pad_token_idx) or (seq_y[2] in self.pad_token_idx)):
                 break
-            if len(seq_x) < self.max_seq_len:
-                seq_x += self.pad_token_idx * ((self.max_seq_len - len(seq_x)) // len(self.pad_token_idx))
+            if len(seq_x) <= end_idx :
+                seq_x += self.pad_token_idx * ((end_idx - len(seq_x)) //  self.action_nb_cols)
+
             x_list.append(np.array(seq_x))
             y_list.append(np.array(seq_y))
         return np.vstack(x_list), np.vstack(y_list)
@@ -68,7 +74,17 @@ class DataToSequence:
             x, y = self.split_row_to_sequence(row, drop_pad=drop_pad)
             x_list.append(x)
             y_list.append(y)
-        return np.vstack(x_list), np.vstack(y_list)
+
+        # Concatenate all sequences
+        x_list = np.vstack(x_list)
+        y_list = np.vstack(y_list)
+
+        # Convert y_list to name index
+        y_list[:, 0] = self.data_tokenizer.convert_index_to_name(name="action", index=y_list[:, 0])
+        y_list[:, 1] = self.data_tokenizer.convert_index_to_name(name="duration", index=y_list[:, 1])
+        y_list[:, 2] = self.data_tokenizer.convert_index_to_name(name="distance", index=y_list[:, 2])
+
+        return x_list, y_list
 
 
     def initiate_data_to_sequence(self) -> DataToSequenceArtifact:
@@ -90,7 +106,8 @@ class DataToSequence:
                 train_x_data_as_sequence_file_path=self.data_to_sequence_config.train_x_data_as_sequence_file_path,
                 train_y_data_as_sequence_file_path=self.data_to_sequence_config.train_y_data_as_sequence_file_path,
                 test_x_data_as_sequence_file_path=self.data_to_sequence_config.test_x_data_as_sequence_file_path,
-                test_y_data_as_sequence_file_path=self.data_to_sequence_config.test_y_data_as_sequence_file_path
+                test_y_data_as_sequence_file_path=self.data_to_sequence_config.test_y_data_as_sequence_file_path,
+                max_sequence_length = df_train_x_seq.shape[1]
             )
 
             # Save data to sequence

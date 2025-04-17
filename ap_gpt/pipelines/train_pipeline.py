@@ -234,8 +234,6 @@ class TrainPipeline:
 
         logging.info("Entered the start_grid_search_training method of TrainPipeline class")
 
-        logging.debug(self._search_grid_config)
-
         list_num_layers = self._search_grid_config["list_num_layers"]
         list_embed_size = self._search_grid_config["list_embed_size"]
         list_forward_expansion = self._search_grid_config["list_forward_expansion"]
@@ -310,48 +308,48 @@ class TrainPipeline:
             logging.info("      Entered the run_pipeline method of TrainPipeline class     ")
             logging.info("==================================================================")
 
-            # logging.info("===> Executing data ingestion <===")
-            # data_ingestion_artifact = self.start_data_ingestion()
-            # logging.info("Data ingestion completed successfully")
-            #
-            # logging.info("===> Executing data preprocessing <===")
-            # data_processing_artifact = self.start_data_preprocessing(data_ingestion_artifact)
-            # logging.info("Data preprocessing completed successfully")
-            #
-            # logging.info("===> Executing data merging <===")
-            # data_merging_artifact = self.start_data_merging(data_processing_artifact)
-            # logging.info("Data merging completed successfully")
-            #
-            # logging.info("===> Executing data splitting <===")
-            # data_splitting_artifact = self.start_data_splitting(data_merging_artifact)
-            # logging.info("Data splitting completed successfully")
-            #
-            # logging.info("===> Executing data tokenization <===")
-            # data_tokenizer_artifact = self.start_data_tokenization(data_splitting_artifact)
-            # logging.info("Data tokenization completed successfully")
-            #
-            # logging.info("===> Executing data to sequence conversion <===")
-            # data_to_sequence_artifact = self.start_data_to_sequence(data_tokenizer_artifact=data_tokenizer_artifact)
-            # logging.info("Data to sequence conversion completed successfully")
+            logging.info("===> Executing data ingestion <===")
+            data_ingestion_artifact = self.start_data_ingestion()
+            logging.info("Data ingestion completed successfully")
+
+            logging.info("===> Executing data preprocessing <===")
+            data_processing_artifact = self.start_data_preprocessing(data_ingestion_artifact)
+            logging.info("Data preprocessing completed successfully")
+
+            logging.info("===> Executing data merging <===")
+            data_merging_artifact = self.start_data_merging(data_processing_artifact)
+            logging.info("Data merging completed successfully")
+
+            logging.info("===> Executing data splitting <===")
+            data_splitting_artifact = self.start_data_splitting(data_merging_artifact)
+            logging.info("Data splitting completed successfully")
+
+            logging.info("===> Executing data tokenization <===")
+            data_tokenizer_artifact = self.start_data_tokenization(data_splitting_artifact)
+            logging.info("Data tokenization completed successfully")
+
+            logging.info("===> Executing data to sequence conversion <===")
+            data_to_sequence_artifact = self.start_data_to_sequence(data_tokenizer_artifact=data_tokenizer_artifact)
+            logging.info("Data to sequence conversion completed successfully")
 
             # ----> A supprimer après test <---- #
 
-            data_tokenizer_artifact = DataTokenizerArtifact(
-                tokenizer_file_path=self.data_tokenizer_config.tokenizer_file_path,
-                train_encoded_data_file_path=self.data_tokenizer_config.train_encoded_data_file_path,
-                test_encoded_data_file_path=self.data_tokenizer_config.test_encoded_data_file_path,
-                pad_token_idx=(81, 97, 139),
-                nb_actions=45,
-                name_vocab_size = {'action': 13, 'duration': 45, 'distance': 49}
-            )
-
-            data_to_sequence_artifact = DataToSequenceArtifact(
-                train_x_data_as_sequence_file_path=self.data_to_sequence_config.train_x_data_as_sequence_file_path,
-                train_y_data_as_sequence_file_path=self.data_to_sequence_config.train_y_data_as_sequence_file_path,
-                test_x_data_as_sequence_file_path=self.data_to_sequence_config.test_x_data_as_sequence_file_path,
-                test_y_data_as_sequence_file_path=self.data_to_sequence_config.test_y_data_as_sequence_file_path,
-                max_sequence_length=150,
-            )
+            # data_tokenizer_artifact = DataTokenizerArtifact(
+            #     tokenizer_file_path=self.data_tokenizer_config.tokenizer_file_path,
+            #     train_encoded_data_file_path=self.data_tokenizer_config.train_encoded_data_file_path,
+            #     test_encoded_data_file_path=self.data_tokenizer_config.test_encoded_data_file_path,
+            #     pad_token_idx=(81, 97, 139),
+            #     nb_actions=45,
+            #     name_vocab_size = {'action': 13, 'duration': 45, 'distance': 49}
+            # )
+            #
+            # data_to_sequence_artifact = DataToSequenceArtifact(
+            #     train_x_data_as_sequence_file_path=self.data_to_sequence_config.train_x_data_as_sequence_file_path,
+            #     train_y_data_as_sequence_file_path=self.data_to_sequence_config.train_y_data_as_sequence_file_path,
+            #     test_x_data_as_sequence_file_path=self.data_to_sequence_config.test_x_data_as_sequence_file_path,
+            #     test_y_data_as_sequence_file_path=self.data_to_sequence_config.test_y_data_as_sequence_file_path,
+            #     max_sequence_length=150,
+            # )
 
             #------------------------------------#
 

@@ -1,12 +1,12 @@
 import torch
 import torch.nn as nn
 
-from ap_gpt.entity.config_entity import  ModelConfig
+from ap_gpt.entity.config_entity import  ModelTrainerConfig
 
 from .self_attention import SelfAttention
 
 class TransformerBlock(nn.Module):
-    def __init__(self, config: ModelConfig):
+    def __init__(self, config: ModelTrainerConfig):
         super(TransformerBlock, self).__init__()
 
         embed_size, dropout, forward_expansion = config.embed_size, config.dropout, config.forward_expansion

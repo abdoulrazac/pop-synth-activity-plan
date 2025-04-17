@@ -24,7 +24,7 @@ shared_files : List[Tuple[str, bool]] = [
     # Config directories
     ('config', True),
     ('config/schema.yml', False),
-    ('config/model.yml', False),
+    ('config/search_grid.yml', False),
 
     # Pipelines directories
     ('main.py', False),
@@ -65,12 +65,10 @@ ap_files : List[Tuple[str, bool]] = [
 
     # Model directories
     ('models', True),
-    ('models/ap_model_base.py', False),
 
     ## Model GPT
     ('models/gpt_activity_plan', True),
     ('models/gpt_activity_plan/__init__.py', False),
-    ('models/gpt_activity_plan/gpt_activity_plan.py', False),
     ('models/gpt_activity_plan/action_gpt.py', False),
     ('models/gpt_activity_plan/self_attention.py', False),
     ('models/gpt_activity_plan/transformer_block.py', False),
@@ -83,11 +81,7 @@ ap_files : List[Tuple[str, bool]] = [
     ('utils', True),
     ('utils/__init__.py', False),
     ('utils/main_utils.py', False),
-    ('utils/data_loader.py', False),
-    ('utils/progress_bar_logger.py', False),
-    ('utils/recode_functions.py', False),
-    ('utils/split_data.py', False),
-    ('utils/tokenizer.py', False),
+    ('utils/progress_bar.py', False),
     ('utils/value_prefixer.py', False),
 
     # Exception directories

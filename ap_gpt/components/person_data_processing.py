@@ -1,4 +1,6 @@
 import sys
+import pandas as pd
+
 from typing import Optional
 
 from ap_gpt.ap_exception import APException
@@ -24,6 +26,19 @@ class PersonDataProcessing(DataProcessingBase):
             self.data_ingestion_artifact = data_ingestion_artifact
             self.data_processing_config = data_processing_config
             self.table_name = TABLE_PERSON_NAME
+            self.max_trip_number = MAX_TRIP_NUMBER
+            self.number_of_trips_col =  TABLE_PERSON_NUMBER_OF_TRIPS_NAME
+        except Exception as e:
+            raise APException(e, sys)
+
+    # Function to keep only interest row
+    def keep_required_row(self, data: pd.DataFrame) -> pd.DataFrame:
+        """
+        This method of DataProcessing class is responsible for keeping only the required rows
+        """
+        try:
+            # Keep only the required rows
+            return data[(data[self.number_of_trips_col] >= 0) & (data[self.number_of_trips_col] <= self.max_trip_number)]
         except Exception as e:
             raise APException(e, sys)
 
@@ -39,6 +54,10 @@ class PersonDataProcessing(DataProcessingBase):
             # Read the data from the CSV files
             logging.info("Reading person data from CSV files")
             df_person = read_data(self.data_ingestion_artifact.person_data_file_path)
+
+            # Make filter on the data
+            logging.info("Filtering person data")
+            df_person = self.keep_required_row(df_person)
 
             # Keep only the required columns
             logging.info("Keeping only the person's required columns")
@@ -61,6 +80,7 @@ class PersonDataProcessing(DataProcessingBase):
 
             # Save person data
             logging.info("Saving person data")
+            logging.info(f"Shape of person data after processing : {df_person.shape}")
             save_data(df_person, data_processing_artifact.person_processed_data_file_path)
 
             return data_processing_artifact

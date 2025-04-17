@@ -11,7 +11,8 @@ from ap_gpt.entity.config_entity import DataMergingConfig
 from ap_gpt.ap_exception import APException
 from ap_gpt.utils.main_utils import read_data, read_yaml_file, save_data
 from ap_gpt.ap_logger import logging
-from ap_gpt.utils.value_prefixer import ValuePrefixer
+
+from ap_gpt.utils  import value_prefixer
 
 
 class DataMerging:
@@ -72,8 +73,6 @@ class DataMerging:
             pd.DataFrame: DataFrame with applied data weighting.
         """
         try:
-            # Apply data weighting logic here
-
             return data.reindex(data.index.repeat(data[weight_col])).reset_index(drop=True)
         except Exception as e:
             raise APException(e, sys)
@@ -117,16 +116,18 @@ class DataMerging:
 
             # Add Value prefix
             logging.info("Adding Value prefix to household data")
-            df_household = ValuePrefixer.transform_all(df_household, exclude=[self.household_id_col, self.household_weight_col])
-            df_person = ValuePrefixer.transform_all(df_person, exclude=[self.household_id_col, self.person_id_col, self.person_weight_col])
+            df_household = value_prefixer.transform_all(df_household, exclude=[self.household_id_col, self.household_weight_col])
+            df_person = value_prefixer.transform_all(df_person, exclude=[self.household_id_col, self.person_id_col, self.person_weight_col])
 
             # Merge the dataframes
             logging.info("Merging household, person, and trip data")
             df_merged = self.merge_all_data(df_household, df_person, df_trip)
+            logging.info(f"Shape of merged data: {df_merged.shape}")
 
-            # Apply data weighting
-            logging.info("Applying data weighting to merged data using person weight")
-            df_merged = self.weight_data(df_merged, self.person_weight_col)
+            # # Apply data weighting
+            # logging.info("Applying data weighting to merged data using person weight")
+            # df_merged = self.weight_data(df_merged, self.person_weight_col)
+            # logging.info(f"Shape of weighted merged data: {df_merged.shape}")
 
             # Remove unnecessary columns
             logging.info("Removing ID and weight columns from merged data")
@@ -136,9 +137,9 @@ class DataMerging:
                 merged_data_file_path=self.data_merging_config.merged_data_file_path,
             )
 
-            # Save the merged dataframe
+            # # Save the merged dataframe
             logging.info("Saving merged data")
-            save_data(df_merged, data_merging_artifact.merged_data_file_path)
+            save_data(df_merged, self.data_merging_config.merged_data_file_path)
 
             return data_merging_artifact
         except Exception as e:

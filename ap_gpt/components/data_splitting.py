@@ -31,12 +31,11 @@ class DataSplitting :
 
             # Split the data into training and validation sets
             logging.info("Splitting data into training and testing sets")
-            df_val, df = split_data(df, self.data_splitting_config.validation_split_ratio)
+            df, df_val = split_data(df, test_size=self.data_splitting_config.validation_split_ratio)
 
             # Split the data into training and testing sets
             logging.info("Splitting data into training and testing sets")
-            df_train, df_test = split_data(df, self.data_splitting_config.train_test_split_ratio)
-
+            df_train, df_test = split_data(df, train_size=self.data_splitting_config.train_test_split_ratio)
 
             # Create DataSplittingArtifact
             data_splitting_artifact = DataSplittingArtifact(
@@ -44,6 +43,11 @@ class DataSplitting :
                 test_data_file_path=self.data_splitting_config.test_data_file_path,
                 validation_data_file_path=self.data_splitting_config.validation_data_file_path,
             )
+
+            # Data shape information
+            logging.info(f"Shape of training data: {df_train.shape}")
+            logging.info(f"Shape of testing data: {df_test.shape}")
+            logging.info(f"Shape of validation data: {df_val.shape}")
 
             # Save all dataframes
             logging.info("Saving training, testing, and validation data")

@@ -61,6 +61,7 @@ class HouseholdDataProcessing(DataProcessingBase):
 
             # Save household data
             logging.info("Saving household data")
+            logging.info(f"Shape of household data after processing : {df_household.shape}")
             save_data(df_household, data_processing_artifact.household_processed_data_file_path)
 
             return data_processing_artifact

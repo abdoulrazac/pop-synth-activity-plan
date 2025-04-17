@@ -223,6 +223,7 @@ class TripDataProcessing(DataProcessingBase):
 
             # Save trip data
             logging.info("Saving trip data")
+            logging.info(f"Shape of trip data after processing : {df_trip.shape}")
             save_data(df_trip, data_processing_artifact.trip_processed_data_file_path)
 
             return data_processing_artifact

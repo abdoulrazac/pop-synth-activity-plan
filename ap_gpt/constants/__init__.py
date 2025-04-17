@@ -27,6 +27,7 @@ ARTIFACT_DIR_NAME = "artifact"
 
 # SCHEMA FILES ------------------------------------------------------
 SCHEMA_FILE_PATH = os.path.join("config", "schema.yml")
+SEARCH_GRID_FILE_PATH = os.path.join("config", "search_grid.yml")
 
 # Table constants ------------------------------------------------------
 TABLE_HOUSEHOLD_NAME = "households"
@@ -45,8 +46,12 @@ TABLE_TRIP_DURATION_NAME = "duration"
 TABLE_TRIP_DISTANCE_NAME = "distance"
 TABLE_TRIP_REQUIRED_COLUMNS = ["preceding_purpose", "departure_time", 'mode', 'trip_duration', 'euclidean_distance', 'following_purpose', 'activity_duration', 'arrival_time', 'is_last_trip']
 
+TABLE_PERSON_NUMBER_OF_TRIPS_NAME = "number_of_trips"
+
 # DATA INGESTION ------------------------------------------------------
 DATA_STORE_DIR_NAME = "data"
+MODEL_STORE_DIR_NAME = "model"
+METRIC_STORE_DIR_NAME = "metrics"
 DATA_RAW_DIR_NAME = "data/raw"
 
 DATA_VALIDATION_REPORT_FILE_NAME = "validation_report.json"
@@ -69,9 +74,9 @@ TRAIN_DATA_FILE_NAME = "train_data.parquet"
 TEST_DATA_FILE_NAME = "test_data.parquet"
 VALIDATION_DATA_FILE_NAME = "validation_data.parquet"
 
-TRAIN_DATA_AS_SEQUENCE_FILE_NAME = "train_data_as_sequence.parquet"
-TEST_DATA_AS_SEQUENCE_FILE_NAME = "test_data_as_sequence.parquet"
-VALIDATION_DATA_AS_SEQUENCE_FILE_NAME = "validation_data_as_sequence.parquet"
+TRAIN_DATA_AS_SEQUENCE_FILE_NAME = "train_data_as_sequence.npy"
+TEST_DATA_AS_SEQUENCE_FILE_NAME = "test_data_as_sequence.npy"
+VALIDATION_DATA_AS_SEQUENCE_FILE_NAME = "validation_data_as_sequence.npy"
 
 TRAIN_TEST_SPLIT_RATIO = 0.8
 VALIDATION_SPLIT_RATIO = 0.2

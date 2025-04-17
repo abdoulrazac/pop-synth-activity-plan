@@ -1,12 +1,12 @@
 import torch
 import torch.nn as nn
 
-from ap_gpt.entity.config_entity import ModelConfig
+from ap_gpt.entity.config_entity import ModelTrainerConfig
 
 
 
 class SelfAttention(nn.Module) :
-    def __init__(self, config : ModelConfig) :
+    def __init__(self, config : ModelTrainerConfig) :
         super(SelfAttention, self).__init__()
         self.embed_size = config.embed_size
         self.heads = config.heads

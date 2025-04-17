@@ -1,4 +1,5 @@
 import sys
+import os
 import numpy as np
 from typing import List, Tuple, Union, Literal
 
@@ -45,7 +46,7 @@ class DataTokenizer:
     """
 
     def __init__(self,
-                 data_splitting_artifact: DataSplittingArtifact,
+                 data_splitting_artifact: Union[DataSplittingArtifact, None] = None,
                  data_tokenizer_config: DataTokenizerConfig = DataTokenizerConfig(),
                  sot_token: str = SOT_TOKEN,
                  eot_token: dict = EOT_TOKEN,
@@ -61,7 +62,6 @@ class DataTokenizer:
             unk_token (str): Unknown token. Default is UNK_TOKEN.
         """
         self.data_tokenizer_config = data_tokenizer_config
-        self.data_splitting_artifact = data_splitting_artifact
         self.pad_token = pad_token
         self.unk_token = unk_token
         self.sot_token = sot_token
@@ -73,6 +73,9 @@ class DataTokenizer:
         self.vocab_size = 0
         self.name_vocab_size = {"action": 0, "duration": 0, "distance": 0}
         self._build_vocab()
+
+        if data_splitting_artifact is not None:
+            self.data_splitting_artifact = data_splitting_artifact
 
     def _build_vocab(self):
         """
@@ -242,11 +245,11 @@ class DataTokenizer:
             Union[int, List[int], np.ndarray]: The index or indices of the word(s) in the general vocabulary.
         """
         if type(index) == int:
-            return self.word2idx.get(self.idx2name[name].get(index, self.unk_token), self.unk_token)
+            return self.word2idx.get(self.idx2name[name].get(int(index), self.unk_token), self.unk_token)
         elif type(index) == list or type(index) == tuple:
-            return [self.word2idx.get(self.idx2name[name].get(i, self.unk_token), self.unk_token) for i in index]
+            return [self.word2idx.get(self.idx2name[name].get(int(i), self.unk_token), self.unk_token) for i in index]
         elif type(index) == np.array or type(index) == np.ndarray:
-            out = [self.word2idx.get(self.idx2name[name].get(i, self.unk_token), self.unk_token) for i in
+            out = [self.word2idx.get(self.idx2name[name].get(int(i), self.unk_token), self.unk_token) for i in
                    index.flatten()]
             return np.array(out).reshape(index.shape)
 
@@ -260,9 +263,16 @@ class DataTokenizer:
         The dictionary is saved in a tab-separated format, with each line containing
         an index and its corresponding word.
         """
-        with open(path, 'w') as f:
+        file_name, extension = os.path.splitext(path)
+
+        with open(file_name + '_index_to_word' + extension, 'w') as f:
             for word in self.idx2word.items():
                 f.write(f"{word[0]}\t{word[1]}\n")
+
+        with open(file_name + '_index_from_name' + extension, 'w') as f:
+            for name in self.idx2name.items():
+                for word in name[1].items():
+                    f.write(f"{name[0]}\t{word[0]}\t{word[1]}\n")
 
     def load(self, path):
         """
@@ -283,12 +293,21 @@ class DataTokenizer:
             The method will populate `self.word2idx` with {'hello': 0, 'world': 1}
             and `self.idx2word` with {0: 'hello', 1: 'world'}.
         """
-        with open(path, 'r') as f:
+        file_name, extension = os.path.splitext(path)
+
+        with open(file_name + '_index_to_word' + extension, 'r') as f:
             for line in f.readlines():
                 idx, word = line.strip().split("\t")
                 self.word2idx[word] = int(idx)
                 self.idx2word[int(idx)] = word
             self.vocab_size = len(self.word2idx)
+
+        with open(file_name + '_index_from_name' + extension, 'r') as f:
+            for line in f.readlines():
+                name, idx, word = line.strip().split("\t")
+                self.name2idx[name][word] = int(idx)
+                self.idx2name[name][int(idx)] = word
+                self.name_vocab_size[name] = len(self.name2idx[name])
 
     def fill_na_with_pad(self, data:pd.DataFrame):
         """
@@ -345,7 +364,8 @@ class DataTokenizer:
                 train_encoded_data_file_path=self.data_tokenizer_config.train_encoded_data_file_path,
                 test_encoded_data_file_path=self.data_tokenizer_config.test_encoded_data_file_path,
                 pad_token_idx = pad_token_idx,
-                nb_actions= nb_actions
+                nb_actions= nb_actions,
+                name_vocab_size=self.name_vocab_size,
             )
 
             logging.info("Save encoded data")

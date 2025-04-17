@@ -1,3 +1,5 @@
+from typing import Union, Tuple
+
 import torch
 import numpy as np
 
@@ -7,19 +9,12 @@ class DataLoader(torch.utils.data.Dataset):
     Custom DataLoader class to load data from a pandas DataFrame.
     """
 
-    def __init__(self, X: np.ndarray, y: np.ndarray = None, batch_size: int = 32, shuffle: bool = True):
+    def __init__(self, X: Union[np.ndarray, Tuple[np.ndarray, np.ndarray]], y: np.ndarray = None, batch_size: int = 32, shuffle: bool = True):
         # If only X is provided and it's a tuple, assume it contains both X and y
         if y is None and isinstance(X, tuple) and len(X) == 2:
             self.X, self.y = X
         else:
             self.X, self.y = X, y
-
-        # Convert to tensors if needed
-        if not isinstance(self.X, torch.Tensor):
-            self.X = torch.tensor(self.X, dtype=torch.float32)
-
-        if self.y is not None and not isinstance(self.y, torch.Tensor):
-            self.y = torch.tensor(self.y, dtype=torch.long)
 
         self.batch_size = batch_size
         self.shuffle = shuffle

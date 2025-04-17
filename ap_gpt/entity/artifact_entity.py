@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Union, Tuple
+from typing import Dict, Tuple
 
 
 @dataclass
@@ -52,6 +52,7 @@ class DataToSequenceArtifact:
     train_y_data_as_sequence_file_path : str
     test_x_data_as_sequence_file_path: str
     test_y_data_as_sequence_file_path : str
+    max_sequence_length: int
 
 
 
@@ -62,16 +63,50 @@ class DataTokenizerArtifact:
     test_encoded_data_file_path: str
     pad_token_idx: Tuple[int, int, int]
     nb_actions: int
+    name_vocab_size: Dict[str, int]
 
 @dataclass
-class MetricArtifact:
+class ModelMetrics:
     accuracy: float
     precision: float
     recall: float
     f1_score: float
 
+@dataclass
+class MetricArtifact:
+    action_metrics: ModelMetrics
+    duration_metrics: ModelMetrics
+    distance_metrics: ModelMetrics
+    best_model_test_loss : float
+
+    def to_json(self) :
+        return {
+            "action_metrics": {
+                "accuracy": self.action_metrics.accuracy,
+                "precision": self.action_metrics.precision,
+                "recall": self.action_metrics.recall,
+                "f1_score": self.action_metrics.f1_score
+            },
+            "duration_metrics": {
+                "accuracy": self.duration_metrics.accuracy,
+                "precision": self.duration_metrics.precision,
+                "recall": self.duration_metrics.recall,
+                "f1_score": self.duration_metrics.f1_score
+            },
+            "distance_metrics": {
+                "accuracy": self.distance_metrics.accuracy,
+                "precision": self.distance_metrics.precision,
+                "recall": self.distance_metrics.recall,
+                "f1_score": self.distance_metrics.f1_score
+            },
+            "best_model_test_loss": self.best_model_test_loss
+        }
+
+
 
 @dataclass
 class ModelTrainerArtifact:
     trained_model_file_path: str
-    metric_artifact: dict
+    metric_artifact: MetricArtifact
+    model_trainer_config: str
+    model_name: str

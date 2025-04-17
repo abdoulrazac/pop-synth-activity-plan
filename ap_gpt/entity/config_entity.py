@@ -13,6 +13,7 @@ TIMESTAMP: str = datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
 class TrainingPipelineConfig:
     artifact_dir_name: str = os.path.join(from_root(), ARTIFACT_DIR_NAME) #, TIMESTAMP)
     timestamp: str = TIMESTAMP
+    metric_store_path: str = os.path.join(artifact_dir_name, METRIC_STORE_DIR_NAME)
 
 
 training_pipeline_config: TrainingPipelineConfig = TrainingPipelineConfig()
@@ -132,8 +133,6 @@ class DataToSequenceConfig:
     validation_y_data_as_sequence_file_path: str = os.path.join(
         data_store_path, "Y_" + VALIDATION_DATA_AS_SEQUENCE_FILE_NAME
     )
-
-    max_seq_len : int = MAX_SEQ_LENGTH
     action_nb_cols : int = ACTION_NB_COLS
     drop_pad: bool = True
 
@@ -154,30 +153,84 @@ class DataTokenizerConfig:
     )
 
 @dataclass
-class ModelConfig :
+class ModelTrainerConfig :
+    best_model_path : str
     pad_token_idx : Tuple[int, int, int]
-    embed_size : int
     heads : int
+    max_sequence_length : int
+    name_vocab_size : Dict[str, int]
+    nb_actions : int
+    embed_size : int = 2
     dropout : float =0.2
-    best_model_path : str = "best_model.pth"
     forward_expansion : int = 4
-    max_len : int = MAX_SEQ_LENGTH
     num_layers : int = 1
     vocab_size : int = 256
-    name_vocab_size : Dict[str, int] = {"action" : 256, "duration" : 256, "distance" : 256},
     action_start_idx : int = 19
-    epochs : int = 100
+    epochs : int = 1 # 00
     batch_size : int = 32
+    verbose : bool = False
     device : str = get_device()
+    model_store_path: str = os.path.join(
+        training_pipeline_config.artifact_dir_name,
+        MODEL_STORE_DIR_NAME
+    )
+
+    def __init__(self,
+                 model_name:str,
+                 heads: int,
+                 pad_token_idx: Tuple[int, int, int],
+                 nb_actions: int,
+                 name_vocab_size: Dict[str, int],
+                 max_sequence_length: int,
+                 embed_size: int = 2,
+                 num_layers: int = 1,
+                 forward_expansion: int = 4,
+                 dropout: float = 0.2,
+                 epochs : int = 1,
+                 verbose: bool = False,
+            ) -> None:
+        self.heads = heads
+        self.pad_token_idx = pad_token_idx
+        self.nb_actions = nb_actions
+        self.name_vocab_size = name_vocab_size
+        self.max_sequence_length = max_sequence_length
+        self.embed_size = embed_size
+        self.num_layers = num_layers
+        self.forward_expansion = forward_expansion
+        self.dropout = dropout
+        self.epochs = epochs
+        self.verbose = verbose
+        self.model_name = model_name
+
+        self.best_model_path = os.path.join(
+            self.model_store_path, model_name + "_best_model.pth"
+        )
+        self.benchmark_file_path = os.path.join(
+            self.model_store_path, model_name + "_benchmark.json"
+        )
 
     def __repr__(self) :
         return (f"ModelConfig(\nembed_size={self.embed_size}, \nheads={self.heads}, \ndropout={self.dropout}, " +
-                f"\nforward_expansion={self.forward_expansion}, \nmax_len={self.max_len}, " +
+                f"\nforward_expansion={self.forward_expansion}, \nmax_len={self.max_sequence_length}, " +
                 f"\nnum_layers={self.num_layers}, \nvocab_size={self.vocab_size}, \ndevice={self.device})" +
                 f"\npad_token_idx={self.pad_token_idx}, \naction_start_idx={self.action_start_idx}, \nepochs={self.epochs}")
 
-@dataclass
-class ModelTrainerConfig :
-    best_model_path: str
-    benchmark_file_path: str
+    def to_json(self) -> str:
+        return (
+            "{"
+            f'"pad_token_idx": {self.pad_token_idx}, '
+            f'"heads": {self.heads}, '
+            f'"embed_size": {self.embed_size}, '
+            f'"dropout": {self.dropout}, '
+            f'"forward_expansion": {self.forward_expansion}, '
+            f'"max_len": {self.max_sequence_length}, '
+            f'"num_layers": {self.num_layers}, '
+            f'"vocab_size": {self.vocab_size}, '
+            f'"name_vocab_size": {self.name_vocab_size}, '
+            f'"action_start_idx": {self.action_start_idx}, '
+            f'"epochs": {self.epochs}, '
+            f'"batch_size": {self.batch_size}, '
+            f'"model_store_path": "{self.model_store_path}"'
+            "}"
+        )
 

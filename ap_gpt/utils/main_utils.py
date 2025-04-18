@@ -91,7 +91,7 @@ def save_object(file_path: str, obj: object) -> None:
         raise APException(e, sys) from e
 
 
-def read_data(file_path: str, index_col=None, is_array:bool=False) -> Union[pd.DataFrame, np.ndarray]:
+def read_data(file_path: str, index_col=None, is_array:bool=False, sep:str=None) -> Union[pd.DataFrame, np.ndarray]:
     """
     Reads data from a file and returns it as a DataFrame.
 
@@ -108,7 +108,7 @@ def read_data(file_path: str, index_col=None, is_array:bool=False) -> Union[pd.D
         if is_array or extension == ".npy":
             return np.load(file_path, allow_pickle=True)
         elif extension == ".csv" or extension == ".txt":
-            return pd.read_csv(file_path, index_col=index_col)
+            return pd.read_csv(file_path, index_col=index_col, sep=sep)
         elif extension == ".json":
             return pd.read_json(file_path)
         elif extension == ".xls" or extension == ".xlsx":

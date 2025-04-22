@@ -31,29 +31,29 @@ class DataSplitting :
 
             # Split the data into training and validation sets
             logging.info("Splitting data into training and testing sets")
-            df, df_val = split_data(df, test_size=self.data_splitting_config.validation_split_ratio)
+            df, df_test = split_data(df, train_size=self.data_splitting_config.train_test_split_ratio)
 
             # Split the data into training and testing sets
             logging.info("Splitting data into training and testing sets")
-            df_train, df_test = split_data(df, train_size=self.data_splitting_config.train_test_split_ratio)
+            df_train, df_validation = split_data(df, test_size=self.data_splitting_config.validation_split_ratio)
 
             # Create DataSplittingArtifact
             data_splitting_artifact = DataSplittingArtifact(
                 train_data_file_path=self.data_splitting_config.train_data_file_path,
-                test_data_file_path=self.data_splitting_config.test_data_file_path,
                 validation_data_file_path=self.data_splitting_config.validation_data_file_path,
+                test_data_file_path=self.data_splitting_config.test_data_file_path,
             )
 
             # Data shape information
             logging.info(f"Shape of training data: {df_train.shape}")
+            logging.info(f"Shape of validation data: {df_validation.shape}")
             logging.info(f"Shape of testing data: {df_test.shape}")
-            logging.info(f"Shape of validation data: {df_val.shape}")
 
             # Save all dataframes
             logging.info("Saving training, testing, and validation data")
-            save_data(df_train, data_splitting_artifact.train_data_file_path)
-            save_data(df_test, data_splitting_artifact.test_data_file_path)
-            save_data(df_val, data_splitting_artifact.validation_data_file_path)
+            save_data(df_train, self.data_splitting_config.train_data_file_path)
+            save_data(df_validation, self.data_splitting_config.validation_data_file_path)
+            save_data(df_test, self.data_splitting_config.test_data_file_path)
 
             return data_splitting_artifact
         except Exception as e:

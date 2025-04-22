@@ -11,9 +11,16 @@ TIMESTAMP: str = datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
 
 @dataclass
 class TrainingPipelineConfig:
+    model_name: str
     artifact_dir_name: str = os.path.join(from_root(), ARTIFACT_DIR_NAME) #, TIMESTAMP)
     timestamp: str = TIMESTAMP
     metric_store_path: str = os.path.join(artifact_dir_name, METRIC_STORE_DIR_NAME)
+
+    def __init__(self, model_name: str = "ActionGPT") -> None:
+        self.model_name = model_name
+        self.artifact_dir_name = os.path.join(from_root(), ARTIFACT_DIR_NAME, model_name)
+        self.metric_store_path = os.path.join(self.artifact_dir_name, METRIC_STORE_DIR_NAME)
+        self.timestamp = TIMESTAMP
 
 
 training_pipeline_config: TrainingPipelineConfig = TrainingPipelineConfig()
@@ -148,6 +155,9 @@ class DataTokenizerConfig:
     train_encoded_data_file_path : str = os.path.join(
         data_store_path, TRAIN_ENCODED_DATA_FILE_NAME
     )
+    validation_encoded_data_file_path : str = os.path.join(
+        data_store_path, VALIDATION_ENCODED_DATA_FILE_NAME
+    )
     test_encoded_data_file_path : str = os.path.join(
         data_store_path, TEST_ENCODED_DATA_FILE_NAME
     )
@@ -167,7 +177,7 @@ class ModelTrainerConfig :
     vocab_size : int = 256
     action_start_idx : int = 19
     epochs : int = 1 # 00
-    batch_size : int = 32
+    batch_size : int = 128
     verbose : bool = False
     device : str = get_device()
     model_store_path: str = os.path.join(
@@ -187,6 +197,7 @@ class ModelTrainerConfig :
                  forward_expansion: int = 4,
                  dropout: float = 0.2,
                  epochs : int = 1,
+                 batch_size: int = 128,
                  verbose: bool = False,
             ) -> None:
         self.heads = heads
@@ -199,6 +210,7 @@ class ModelTrainerConfig :
         self.forward_expansion = forward_expansion
         self.dropout = dropout
         self.epochs = epochs
+        self.batch_size = batch_size
         self.verbose = verbose
         self.model_name = model_name
 
@@ -213,7 +225,10 @@ class ModelTrainerConfig :
         return (f"ModelConfig(\nembed_size={self.embed_size}, \nheads={self.heads}, \ndropout={self.dropout}, " +
                 f"\nforward_expansion={self.forward_expansion}, \nmax_len={self.max_sequence_length}, " +
                 f"\nnum_layers={self.num_layers}, \nvocab_size={self.vocab_size}, \ndevice={self.device})" +
-                f"\npad_token_idx={self.pad_token_idx}, \naction_start_idx={self.action_start_idx}, \nepochs={self.epochs}")
+                f"\npad_token_idx={self.pad_token_idx}, \naction_start_idx={self.action_start_idx}, \nepochs={self.epochs}" +
+                f"\nbatch_size={self.batch_size}, \nmodel_store_path={self.model_store_path}, " +
+                f"\nmodel_name={self.model_name}, \nnb_actions={self.nb_actions}, " +
+                f"\nname_vocab_size={self.name_vocab_size}, \nverbose={self.verbose})")
 
     def to_json(self) -> str:
         return (
@@ -230,7 +245,18 @@ class ModelTrainerConfig :
             f'"action_start_idx": {self.action_start_idx}, '
             f'"epochs": {self.epochs}, '
             f'"batch_size": {self.batch_size}, '
-            f'"model_store_path": "{self.model_store_path}"'
+            f'"model_store_path": "{self.model_store_path}",'
+            f'"model_name": "{self.model_name}", '
+            f'"nb_actions": {self.nb_actions}, '
+            f'"verbose": {self.verbose}, '
+            f'"device": "{self.device}", '
+            f'"action_start_idx": {self.action_start_idx},'
+            f'"max_sequence_length": {self.max_sequence_length}, '
             "}"
         )
 
+
+@dataclass
+class ModelSelectionConfig:
+    data_generated_store_path: str = os.path.join(training_pipeline_config.artifact_dir_name, DATA_GENERATED_STORE_DIR_NAME)
+    data_generated_detail_file_path: str = os.path.join(data_generated_store_path, DATA_GENERATED_DETAIL_FILE_NAME)

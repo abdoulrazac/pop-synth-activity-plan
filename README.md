@@ -19,16 +19,20 @@ flowchart TD
     SPLIT --> F3[val_data.csv]
     F1 --> TOKEN[Tokenize data]
     F2 --> TOKEN
-    TOKEN --> SEQ[Transform Data as sequence]
+    F3 --> TOKEN
+    TOKEN --> ENCODED1[train_encoded_data.csv]
+    TOKEN --> ENCODED2[test_encoded_data.csv]
+    TOKEN --> ENCODED3[val_encoded_data.csv]
+    ENCODED1 --> SEQ[Transform Data as sequence]
+    ENCODED2 --> SEQ
     SEQ --> H[Model trainer]
     M1[Model] --> H
     M2[Model evaluator] --> H 
     H -.-> I1[Save model]
     H -.-> I2[Save metrics]
-```
-
-### Generataion flow
-```mermaid
-flowchart TD
-    
+    I1 --> BEST_MODEL[Get Best model]
+    I2 --> BEST_MODEL
+    BEST_MODEL --> GEN_DATA[Data generation]
+    ENCODED3 --> GEN_DATA
+    GEN_DATA --> FINAL_EVAL[Final evaluation]
 ```

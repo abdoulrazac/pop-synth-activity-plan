@@ -1,6 +1,8 @@
 import sys
 import os
 
+import numpy as np
+
 from concurrent.futures import ThreadPoolExecutor
 from from_root import from_root
 
@@ -12,39 +14,44 @@ from ap_gpt.components.data_splitting import DataSplitting
 from ap_gpt.components.data_to_sequence import DataToSequence
 from ap_gpt.components.data_tokenizer import DataTokenizer
 from ap_gpt.components.household_data_processing import HouseholdDataProcessing
+from ap_gpt.components.model_selection import ModelSelection
 from ap_gpt.components.model_trainer import ModelTrainer
 from ap_gpt.components.person_data_processing import PersonDataProcessing
 from ap_gpt.components.trip_data_processing import TripDataProcessing
 from ap_gpt.constants import SEARCH_GRID_FILE_PATH
 from ap_gpt.entity.artifact_entity import (
     DataIngestionArtifact, DataProcessingArtifact, DataMergingArtifact,
-    DataSplittingArtifact, DataTokenizerArtifact, DataToSequenceArtifact, ModelTrainerArtifact
+    DataSplittingArtifact, DataTokenizerArtifact, DataToSequenceArtifact, ModelTrainerArtifact, ModelSelectionArtifact
 )
 from ap_gpt.entity.config_entity import (
     DataIngestionConfig, DataProcessingConfig, DataMergingConfig,
-    DataSplittingConfig, DataTokenizerConfig, DataToSequenceConfig, ModelTrainerConfig, TrainingPipelineConfig
+    DataSplittingConfig, DataTokenizerConfig, DataToSequenceConfig, ModelTrainerConfig, TrainingPipelineConfig,
+    ModelSelectionConfig
 )
 from ap_gpt.models.gpt_activity_plan.action_gpt import ActionGPT
 from ap_gpt.utils.main_utils import read_yaml_file
 
 
 class TrainPipeline:
-    def __init__(self, model_name: str = "default"):
+    def __init__(self, training_pipeline_config: TrainingPipelineConfig = TrainingPipelineConfig()) -> None:
         """
         This method of TrainPipeline class is responsible for initializing the pipeline
         Args :
             model_name (str) : name of the model to be trained
         """
-        self.model_name = model_name
+        self.model_name = training_pipeline_config.model_name
 
         # Initialize the configuration classes
-        self.training_pipeline_config: TrainingPipelineConfig = TrainingPipelineConfig()
+        self.training_pipeline_config: TrainingPipelineConfig = training_pipeline_config
         self.data_ingestion_config: DataIngestionConfig = DataIngestionConfig()
         self.data_processing_config: DataProcessingConfig = DataProcessingConfig()
         self.data_merging_config: DataMergingConfig = DataMergingConfig()
         self.data_splitting_config: DataSplittingConfig = DataSplittingConfig()
         self.data_tokenizer_config: DataTokenizerConfig = DataTokenizerConfig()
         self.data_to_sequence_config: DataToSequenceConfig = DataToSequenceConfig()
+        self.model_selection_config: ModelSelectionConfig = ModelSelectionConfig()
+
+        self.metric_file_name = os.path.join(self.training_pipeline_config.metric_store_path, self.model_name + ".csv")
 
         self._search_grid_config = read_yaml_file(os.path.join(from_root(), SEARCH_GRID_FILE_PATH))
 
@@ -140,7 +147,10 @@ class TrainPipeline:
         except Exception as e:
             raise APException(e, sys)
 
-    def start_data_tokenization(self, data_splitting_artifact: DataSplittingArtifact) -> DataTokenizerArtifact :
+    def start_data_tokenization(self,
+                                data_merging_artifact: DataMergingArtifact,
+                                data_splitting_artifact: DataSplittingArtifact,
+                                ) -> DataTokenizerArtifact:
         """
         This method of TrainPipeline class is responsible for starting data tokenization
         """
@@ -149,6 +159,7 @@ class TrainPipeline:
             # Implement data tokenization logic here
 
             data_tokenizer = DataTokenizer(
+                data_merging_artifact=data_merging_artifact,
                 data_splitting_artifact=data_splitting_artifact,
                 data_tokenizer_config=self.data_tokenizer_config
             )
@@ -159,7 +170,10 @@ class TrainPipeline:
         except Exception as e:
             raise APException(e, sys)
 
-    def start_data_to_sequence(self, data_tokenizer_artifact : DataTokenizerArtifact) -> DataToSequenceArtifact :
+    def start_data_to_sequence(self,
+                               data_merging_artifact: DataMergingArtifact,
+                               data_tokenizer_artifact: DataTokenizerArtifact
+                               ) -> DataToSequenceArtifact:
         """
         This method of TrainPipeline class is responsible for starting data to sequence conversion
         """
@@ -167,6 +181,7 @@ class TrainPipeline:
             logging.info("Entered the start_data_to_sequence method of TrainPipeline class")
             # Implement data to sequence conversion logic here
             data_to_sequence = DataToSequence(
+                data_merging_artifact=data_merging_artifact,
                 data_tokenizer_artifact=data_tokenizer_artifact,
                 data_to_sequence_config=self.data_to_sequence_config
             )
@@ -176,7 +191,7 @@ class TrainPipeline:
         except Exception as e:
             raise APException(e, sys)
 
-    def start_save_metrics(self, model_trainer_artifact : ModelTrainerArtifact) -> None:
+    def start_save_metrics(self, model_trainer_artifact: ModelTrainerArtifact) -> None:
         """
         This method of TrainPipeline class is responsible for saving metrics
         """
@@ -187,23 +202,30 @@ class TrainPipeline:
             os.makedirs(self.training_pipeline_config.metric_store_path, exist_ok=True)
 
             # File name
-            file_name = os.path.join(self.training_pipeline_config.metric_store_path, self.model_name + ".csv")
+
+
+            # Compute mean
+            f1_score_mean = np.mean([
+                model_trainer_artifact.metric_artifact.action_metrics.f1_score,
+                model_trainer_artifact.metric_artifact.duration_metrics.f1_score,
+                model_trainer_artifact.metric_artifact.distance_metrics.f1_score
+            ])
 
             # Check if the file exists, if not create it
-            if not os.path.isfile(file_name):
-                with open(file_name, 'w') as f:
+            if not os.path.isfile(self.metric_file_name):
+                with open(self.metric_file_name, 'w') as f:
                     f.write(
-                        "model_name;config;test_loss;" +
+                        "model_path;config;test_loss;" +
                         "action_accuracy;action_precision;action_recall;action_f1_score;" +
                         "duration_accuracy;duration_precision;duration_recall;duration_f1_score;" +
-                        "distance_accuracy;distance_precision;distance_recall;distance_f1_score\n"
+                        "distance_accuracy;distance_precision;distance_recall;distance_f1_score;f1_score_mean\n"
                     )
 
             # Write the metrics to the file
-            with open(file_name, 'a') as f:
+            with open(self.metric_file_name, 'a') as f:
                 f.write(
-                    f"{model_trainer_artifact.model_name};{model_trainer_artifact.model_trainer_config};" +
-                    f"{model_trainer_artifact.metric_artifact.best_model_test_loss};" +
+                    f"{model_trainer_artifact.trained_model_file_path};{model_trainer_artifact.model_trainer_config};" +
+                    f"{model_trainer_artifact.metric_artifact.best_model_validation_loss};" +
 
                     f"{model_trainer_artifact.metric_artifact.action_metrics.accuracy};" +
                     f"{model_trainer_artifact.metric_artifact.action_metrics.precision};" +
@@ -218,7 +240,8 @@ class TrainPipeline:
                     f"{model_trainer_artifact.metric_artifact.distance_metrics.accuracy};" +
                     f"{model_trainer_artifact.metric_artifact.distance_metrics.precision};" +
                     f"{model_trainer_artifact.metric_artifact.distance_metrics.recall};" +
-                    f"{model_trainer_artifact.metric_artifact.distance_metrics.f1_score}\n"
+                    f"{model_trainer_artifact.metric_artifact.distance_metrics.f1_score};" +
+                    f"{f1_score_mean}\n"
                 )
 
             logging.info("Exited the start_save_metrics method of TrainPipeline class")
@@ -226,8 +249,10 @@ class TrainPipeline:
             raise APException(e, sys)
 
     def start_grid_search_training(self,
-                            data_tokenizer_artifact : DataTokenizerArtifact,
-                            data_to_sequence_artifact : DataToSequenceArtifact,) -> None:
+                                   data_merging_artifact: DataMergingArtifact,
+                                   data_tokenizer_artifact: DataTokenizerArtifact,
+                                   data_to_sequence_artifact: DataToSequenceArtifact,
+                                   ) -> None:
         """
         This method of TrainPipeline class is responsible for starting grid search
         """
@@ -240,6 +265,7 @@ class TrainPipeline:
         list_dropout = self._search_grid_config["list_dropout"]
         epochs = self._search_grid_config["nb_epochs"]
         heads = self._search_grid_config["heads"]
+        batch_size = self._search_grid_config["batch_size"]
 
         with ThreadPoolExecutor() as executor:
             futures = []
@@ -250,21 +276,23 @@ class TrainPipeline:
                             model_trainer_config = ModelTrainerConfig(
                                 heads=heads,
                                 model_name=f"{self.model_name}_{num_layers}_{embed_size}_{forward_expansion}_{dropout}",
-                                pad_token_idx = data_tokenizer_artifact.pad_token_idx,
-                                nb_actions = data_tokenizer_artifact.nb_actions,
-                                name_vocab_size = data_tokenizer_artifact.name_vocab_size,
-                                max_sequence_length = data_to_sequence_artifact.max_sequence_length,
+                                pad_token_idx=data_tokenizer_artifact.pad_token_idx,
+                                nb_actions=data_tokenizer_artifact.nb_actions,
+                                name_vocab_size=data_tokenizer_artifact.name_vocab_size,
+                                max_sequence_length=data_to_sequence_artifact.max_sequence_length,
                                 num_layers=num_layers,
                                 embed_size=embed_size,
                                 forward_expansion=forward_expansion,
                                 dropout=dropout,
-                                epochs= epochs,
+                                epochs=epochs,
+                                batch_size=batch_size,
                             )
                             model_trainer = ModelTrainer(
                                 model=ActionGPT(config=model_trainer_config),
                                 model_trainer_config=model_trainer_config,
                                 data_tokenizer_artifact=data_tokenizer_artifact,
                                 data_to_sequence_artifact=data_to_sequence_artifact,
+                                data_merging_artifact=data_merging_artifact,
                             )
                             futures.append(executor.submit(model_trainer.initiate_training))
 
@@ -299,6 +327,34 @@ class TrainPipeline:
         #                 # Save the model_trainer_artifact
         #                 self.start_save_metrics(model_trainer_artifact)
 
+    def start_model_selection(self,
+                              data_merging_artifact: DataMergingArtifact,
+                              data_tokenizer_artifact: DataTokenizerArtifact,
+                              data_to_sequence_artifact: DataToSequenceArtifact,
+                              ) -> ModelSelectionArtifact:
+        """
+        This method of TrainPipeline class is responsible for starting model selection
+        """
+        try:
+            logging.info("Entered the start_model_selection method of TrainPipeline class")
+            # Implement model selection logic here
+
+            model_selection = ModelSelection(
+                metric_file_path =  self.metric_file_name,
+                data_merging_artifact = data_merging_artifact,
+                data_tokenizer_artifact = data_tokenizer_artifact,
+                data_to_sequence_artifact = data_to_sequence_artifact,
+                model_selection_config=self.model_selection_config,
+            )
+
+            model_selection_artifact = model_selection.initiate_model_selection()
+            logging.info("Model selection completed successfully")
+
+            logging.info("Exited the start_model_selection method of TrainPipeline class")
+            return model_selection_artifact
+        except Exception as e:
+            raise APException(e, sys)
+
     def run_pipeline(self) -> None:
         """
         This method of TrainPipeline class is responsible for running the entire pipeline
@@ -308,36 +364,42 @@ class TrainPipeline:
             logging.info("      Entered the run_pipeline method of TrainPipeline class     ")
             logging.info("==================================================================")
 
-            logging.info("===> Executing data ingestion <===")
-            data_ingestion_artifact = self.start_data_ingestion()
-            logging.info("Data ingestion completed successfully")
-
-            logging.info("===> Executing data preprocessing <===")
-            data_processing_artifact = self.start_data_preprocessing(data_ingestion_artifact)
-            logging.info("Data preprocessing completed successfully")
-
-            logging.info("===> Executing data merging <===")
-            data_merging_artifact = self.start_data_merging(data_processing_artifact)
-            logging.info("Data merging completed successfully")
-
-            logging.info("===> Executing data splitting <===")
-            data_splitting_artifact = self.start_data_splitting(data_merging_artifact)
-            logging.info("Data splitting completed successfully")
-
-            logging.info("===> Executing data tokenization <===")
-            data_tokenizer_artifact = self.start_data_tokenization(data_splitting_artifact)
-            logging.info("Data tokenization completed successfully")
-
-            logging.info("===> Executing data to sequence conversion <===")
-            data_to_sequence_artifact = self.start_data_to_sequence(data_tokenizer_artifact=data_tokenizer_artifact)
-            logging.info("Data to sequence conversion completed successfully")
+            # logging.info("===> Executing data ingestion <===")
+            # data_ingestion_artifact = self.start_data_ingestion()
+            # logging.info("Data ingestion completed successfully")
+            #
+            # logging.info("===> Executing data preprocessing <===")
+            # data_processing_artifact = self.start_data_preprocessing(data_ingestion_artifact)
+            # logging.info("Data preprocessing completed successfully")
+            #
+            # logging.info("===> Executing data merging <===")
+            # data_merging_artifact = self.start_data_merging(data_processing_artifact)
+            # logging.info("Data merging completed successfully")
+            #
+            # logging.info("===> Executing data splitting <===")
+            # data_splitting_artifact = self.start_data_splitting(data_merging_artifact)
+            # logging.info("Data splitting completed successfully")
+            #
+            # logging.info("===> Executing data tokenization <===")
+            # data_tokenizer_artifact = self.start_data_tokenization(
+            #     data_merging_artifact=data_merging_artifact,
+            #     data_splitting_artifact=data_splitting_artifact
+            # )
+            # logging.info("Data tokenization completed successfully")
+            #
+            # logging.info("===> Executing data to sequence conversion <===")
+            # data_to_sequence_artifact = self.start_data_to_sequence(
+            #     data_merging_artifact=data_merging_artifact,
+            #     data_tokenizer_artifact=data_tokenizer_artifact
+            # )
+            # logging.info("Data to sequence conversion completed successfully")
 
             # ----> A supprimer après test <---- #
 
             # data_tokenizer_artifact = DataTokenizerArtifact(
             #     tokenizer_file_path=self.data_tokenizer_config.tokenizer_file_path,
             #     train_encoded_data_file_path=self.data_tokenizer_config.train_encoded_data_file_path,
-            #     test_encoded_data_file_path=self.data_tokenizer_config.test_encoded_data_file_path,
+            #     validation_encoded_data_file_path=self.data_tokenizer_config.test_encoded_data_file_path,
             #     pad_token_idx=(81, 97, 139),
             #     nb_actions=45,
             #     name_vocab_size = {'action': 13, 'duration': 45, 'distance': 49}
@@ -346,19 +408,54 @@ class TrainPipeline:
             # data_to_sequence_artifact = DataToSequenceArtifact(
             #     train_x_data_as_sequence_file_path=self.data_to_sequence_config.train_x_data_as_sequence_file_path,
             #     train_y_data_as_sequence_file_path=self.data_to_sequence_config.train_y_data_as_sequence_file_path,
-            #     test_x_data_as_sequence_file_path=self.data_to_sequence_config.test_x_data_as_sequence_file_path,
-            #     test_y_data_as_sequence_file_path=self.data_to_sequence_config.test_y_data_as_sequence_file_path,
+            #     validation_x_data_as_sequence_file_path=self.data_to_sequence_config.test_x_data_as_sequence_file_path,
+            #     validation_y_data_as_sequence_file_path=self.data_to_sequence_config.test_y_data_as_sequence_file_path,
             #     max_sequence_length=150,
             # )
 
-            #------------------------------------#
+            data_merging_artifact = DataMergingArtifact(
+                merged_data_file_path='/Users/abdoul/Desktop/these/Activity-Plan/artifact/ActionGPT/data/merged_data.parquet',
+                household_columns_number=6,
+                person_columns_number=12,
+                trip_columns_number=135
+            )
 
-            logging.info("===> Executing search grid training <===")
-            self.start_grid_search_training(
+            data_tokenizer_artifact = DataTokenizerArtifact(
+                tokenizer_file_path='/Users/abdoul/Desktop/these/Activity-Plan/artifact/ActionGPT/data/tokenizer.txt',
+                train_encoded_data_file_path='/Users/abdoul/Desktop/these/Activity-Plan/artifact/ActionGPT/data/train_encoded_data.npy',
+                validation_encoded_data_file_path='/Users/abdoul/Desktop/these/Activity-Plan/artifact/ActionGPT/data/validation_encoded_data.npy',
+                test_encoded_data_file_path='/Users/abdoul/Desktop/these/Activity-Plan/artifact/ActionGPT/data/test_encoded_data.npy',
+                pad_token_idx=(80, 95, 138),
+                nb_actions=45,
+                name_vocab_size={'action': 13, 'duration': 45, 'distance': 49}
+            )
+
+            data_to_sequence_artifact = DataToSequenceArtifact(
+                train_x_data_as_sequence_file_path='/Users/abdoul/Desktop/these/Activity-Plan/artifact/ActionGPT/data/X_train_data_as_sequence.npy',
+                train_y_data_as_sequence_file_path='/Users/abdoul/Desktop/these/Activity-Plan/artifact/ActionGPT/data/Y_train_data_as_sequence.npy',
+                validation_x_data_as_sequence_file_path='/Users/abdoul/Desktop/these/Activity-Plan/artifact/ActionGPT/data/X_validation_data_as_sequence.npy',
+                validation_y_data_as_sequence_file_path='/Users/abdoul/Desktop/these/Activity-Plan/artifact/ActionGPT/data/Y_validation_data_as_sequence.npy',
+                test_x_data_as_sequence_file_path='/Users/abdoul/Desktop/these/Activity-Plan/artifact/ActionGPT/data/X_test_data_as_sequence.npy',
+                max_sequence_length=150
+            )
+
+            # ------------------------------------#
+
+            # logging.info("===> Executing search grid training <===")
+            # self.start_grid_search_training(
+            #     data_merging_artifact=data_merging_artifact,
+            #     data_tokenizer_artifact=data_tokenizer_artifact,
+            #     data_to_sequence_artifact=data_to_sequence_artifact,
+            # )
+            # logging.info("Search grid training completed successfully")
+
+            logging.info("===> Executing model selection and data generating <===")
+            model_selection_artifact = self.start_model_selection(
+                data_merging_artifact=data_merging_artifact,
                 data_tokenizer_artifact=data_tokenizer_artifact,
                 data_to_sequence_artifact=data_to_sequence_artifact,
             )
-            logging.info("Search grid training completed successfully")
+            logging.info("Model selection and data generating completed successfully")
 
             logging.info("==================================================================")
             logging.info("      Exited the run_pipeline method of TrainPipeline class       ")

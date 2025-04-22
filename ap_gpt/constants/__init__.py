@@ -28,6 +28,7 @@ ARTIFACT_DIR_NAME = "artifact"
 # SCHEMA FILES ------------------------------------------------------
 SCHEMA_FILE_PATH = os.path.join("config", "schema.yml")
 SEARCH_GRID_FILE_PATH = os.path.join("config", "search_grid.yml")
+GENERATING_PARAM_GRID_FILE_PATH = os.path.join("config", "generating_param_grid.yml")
 
 # Table constants ------------------------------------------------------
 TABLE_HOUSEHOLD_NAME = "households"
@@ -53,6 +54,8 @@ DATA_STORE_DIR_NAME = "data"
 MODEL_STORE_DIR_NAME = "model"
 METRIC_STORE_DIR_NAME = "metrics"
 DATA_RAW_DIR_NAME = "data/raw"
+DATA_GENERATED_STORE_DIR_NAME = "generated"
+DATA_GENERATED_DETAIL_FILE_NAME = "generated_data_details.yml"
 
 DATA_VALIDATION_REPORT_FILE_NAME = "validation_report.json"
 
@@ -85,12 +88,12 @@ VALIDATION_SPLIT_RATIO = 0.2
 
 TOKENIZER_FILE_NAME = "tokenizer.txt"
 TRAIN_ENCODED_DATA_FILE_NAME = "train_encoded_data.npy"
+VALIDATION_ENCODED_DATA_FILE_NAME = "validation_encoded_data.npy"
 TEST_ENCODED_DATA_FILE_NAME = "test_encoded_data.npy"
 
 # ACTION -------------------------------------------------------
 
 ACTION_NB_COLS = 3
-MAX_SEQ_LENGTH = 100
 
 # MODEL TRAINING ------------------------------------------------------
 

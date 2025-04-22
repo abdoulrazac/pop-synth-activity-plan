@@ -135,6 +135,9 @@ class DataMerging:
 
             data_merging_artifact = DataMergingArtifact(
                 merged_data_file_path=self.data_merging_config.merged_data_file_path,
+                household_columns_number= len([col for col in df_household.columns if col not in [self.household_id_col, self.household_weight_col]]),
+                person_columns_number=len([col for col in df_person.columns if col not in [self.household_id_col, self.person_id_col, self.person_weight_col]]),
+                trip_columns_number=len([col for col in df_trip.columns if col not in [self.person_id_col, self.trip_id_col, self.trip_weight_col]]),
             )
 
             # # Save the merged dataframe

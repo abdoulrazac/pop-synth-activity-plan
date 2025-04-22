@@ -108,7 +108,7 @@ def read_data(file_path: str, index_col=None, is_array:bool=False, sep:str=None)
         if is_array or extension == ".npy":
             return np.load(file_path, allow_pickle=True)
         elif extension == ".csv" or extension == ".txt":
-            return pd.read_csv(file_path, index_col=index_col, sep=sep)
+            return pd.read_csv(file_path, index_col=index_col, sep=sep, engine='python')
         elif extension == ".json":
             return pd.read_json(file_path)
         elif extension == ".xls" or extension == ".xlsx":

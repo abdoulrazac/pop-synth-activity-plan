@@ -24,12 +24,9 @@ class ActionGPT(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
         ## FC for each output (action, duration, distance)
-        self.fc_action_1 = nn.Linear(self.max_sequence_length * embed_size, self.max_sequence_length * embed_size)
-        self.fc_action_2 = nn.Linear(self.max_sequence_length * embed_size, config.name_vocab_size["action"])
-        self.fc_duration_1 = nn.Linear(self.max_sequence_length * embed_size, self.max_sequence_length * embed_size)
-        self.fc_duration_2 = nn.Linear(self.max_sequence_length * embed_size, config.name_vocab_size["duration"])
-        self.fc_distance_1 = nn.Linear(self.max_sequence_length * embed_size, self.max_sequence_length * embed_size)
-        self.fc_distance_2 = nn.Linear(self.max_sequence_length * embed_size, config.name_vocab_size["distance"])
+        self.fc_action_out = nn.Linear(self.max_sequence_length * embed_size, config.name_vocab_size["action"], bias=False)
+        self.fc_duration_out = nn.Linear(self.max_sequence_length * embed_size, config.name_vocab_size["duration"], bias=False)
+        self.fc_distance_out = nn.Linear(self.max_sequence_length * embed_size, config.name_vocab_size["distance"], bias=False)
 
     def make_mask(self, x):
         mask = torch.tensor(~np.isin(x.cpu().numpy(), list(self.pad_token_idx))).unsqueeze(1).unsqueeze(2)
@@ -51,8 +48,9 @@ class ActionGPT(nn.Module):
 
         x = x.reshape(N, -1)
 
-        action_out = self.fc_action_2(self.fc_action_1(x))
-        duration_out = self.fc_duration_2(self.fc_duration_1(x))
-        distance_out = self.fc_distance_2(self.fc_distance_1(x))
+        # FC for each output
+        action_out = self.fc_action_out(x)
+        duration_out = self.fc_duration_out(x)
+        distance_out = self.fc_distance_out(x)
 
         return action_out, duration_out, distance_out

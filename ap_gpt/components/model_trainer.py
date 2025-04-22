@@ -15,7 +15,7 @@ from ap_gpt.ap_exception import APException
 from ap_gpt.ap_logger import logging
 from ap_gpt.components.data_tokenizer import DataTokenizer
 from ap_gpt.entity.artifact_entity import DataToSequenceArtifact, ModelTrainerArtifact, DataTokenizerArtifact, \
-    MetricArtifact, ModelMetrics
+    MetricArtifact, ModelMetrics, DataMergingArtifact
 from ap_gpt.entity.config_entity import ModelTrainerConfig
 from ap_gpt.utils.data_loader import DataLoader
 from ap_gpt.utils.main_utils import read_data
@@ -25,6 +25,7 @@ class ModelTrainer:
     def __init__(
             self,
             model,
+            data_merging_artifact: DataMergingArtifact,
             model_trainer_config : ModelTrainerConfig,
             data_tokenizer_artifact : DataTokenizerArtifact,
             data_to_sequence_artifact: DataToSequenceArtifact,
@@ -33,9 +34,8 @@ class ModelTrainer:
         self.data_to_sequence_artifact = data_to_sequence_artifact
 
         # Load the tokenizer
-        self.tokenizer = DataTokenizer()
+        self.tokenizer = DataTokenizer(data_merging_artifact=data_merging_artifact)
         self.tokenizer.load(data_tokenizer_artifact.tokenizer_file_path)
-
 
         self.model = model
 
@@ -52,7 +52,8 @@ class ModelTrainer:
 
         # Optimization
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.01)
-        self.criterion = nn.CrossEntropyLoss().to(model_trainer_config.device)
+        self.criterion = nn.CrossEntropyLoss()
+        self.criterion.to(model_trainer_config.device)
         # self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=40, gamma=0.1)
         self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=lambda step: 0.85 ** (step // 10))
 
@@ -253,7 +254,7 @@ class ModelTrainer:
                 action_metrics=action_metrics,
                 duration_metrics=duration_metrics,
                 distance_metrics=distance_metrics,
-                best_model_test_loss=self.best_loss,
+                best_model_validation_loss=self.best_loss,
             )
 
         except Exception as e:
@@ -281,12 +282,39 @@ class ModelTrainer:
                 )
         )
 
-    def generate(self, X) -> np.ndarray:
+    def generate(self, X, temperature=1.0, do_sample=False, top_k=None) -> np.ndarray:
         with torch.no_grad():
             idx = self.action_start_idx
             while idx < self.max_sequence_length:
-                y = self.model(torch.tensor(X).to(self.device))
-                y1, y2, y3 = torch.argmax(y[0], dim=1), torch.argmax(y[1], dim=1), torch.argmax(y[2], dim=1)
+                y1, y2, y3 = self.model(torch.tensor(X).to(self.device), training=False)
+
+                y1_probs = torch.softmax(y1, dim=1) / temperature
+                y2_probs = torch.softmax(y2, dim=1) / temperature
+                y3_probs = torch.softmax(y3, dim=1) / temperature
+
+                if top_k is not None:
+                    top_y1 = torch.topk(y1_probs, top_k, dim=1)
+                    top_y2 = torch.topk(y2_probs, top_k, dim=1)
+                    top_y3 = torch.topk(y3_probs, top_k, dim=1)
+
+                    # Replace the probabilities with the top k probabilities and set the rest to -inf
+                    y1_probs = torch.full_like(y1_probs, -float('inf'))
+                    y2_probs = torch.full_like(y2_probs, -float('inf'))
+                    y3_probs = torch.full_like(y3_probs, -float('inf'))
+
+                    y1_probs.scatter_(1, top_y1.indices, top_y1.values)
+                    y2_probs.scatter_(1, top_y2.indices, top_y2.values)
+                    y3_probs.scatter_(1, top_y3.indices, top_y3.values)
+
+                if do_sample:
+                    y1 = torch.multinomial(y1_probs, num_samples=1)
+                    y2 = torch.multinomial(y2_probs, num_samples=1)
+                    y3 = torch.multinomial(y3_probs, num_samples=1)
+                else:
+                    y1 = torch.argmax(y1_probs, dim=1)
+                    y2 = torch.argmax(y2_probs, dim=1)
+                    y3 = torch.argmax(y3_probs, dim=1)
+
                 y1 = self.tokenizer.convert_index_from_name("action", y1.cpu().numpy())
                 y2 = self.tokenizer.convert_index_from_name("duration", y2.cpu().numpy())
                 y3 = self.tokenizer.convert_index_from_name("distance", y3.cpu().numpy())
@@ -303,12 +331,12 @@ class ModelTrainer:
             logging.info("Load datasets")
             x_train = read_data(self.data_to_sequence_artifact.train_x_data_as_sequence_file_path)
             y_train = read_data(self.data_to_sequence_artifact.train_y_data_as_sequence_file_path)
-            x_test = read_data(self.data_to_sequence_artifact.test_x_data_as_sequence_file_path)
-            y_test = read_data(self.data_to_sequence_artifact.test_y_data_as_sequence_file_path)
+            x_validation = read_data(self.data_to_sequence_artifact.validation_x_data_as_sequence_file_path)
+            y_validation = read_data(self.data_to_sequence_artifact.validation_y_data_as_sequence_file_path)
 
             logging.info("Create data loaders")
             train_loader = self.create_data_loader(x_train, y_train, shuffle=True)
-            test_loader = self.create_data_loader(x_test, y_test, shuffle=False)
+            test_loader = self.create_data_loader(x_validation, y_validation, shuffle=False)
 
             logging.info("Start training")
             self.train(

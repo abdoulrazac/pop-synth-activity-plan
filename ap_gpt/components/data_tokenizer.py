@@ -7,7 +7,7 @@ import pandas as pd
 
 from ap_gpt.ap_exception import APException
 from ap_gpt.constants import EOT_TOKEN, PAD_TOKEN, UNK_TOKEN, SOT_TOKEN
-from ap_gpt.entity.artifact_entity import DataSplittingArtifact, DataTokenizerArtifact
+from ap_gpt.entity.artifact_entity import DataSplittingArtifact, DataTokenizerArtifact, DataMergingArtifact
 from ap_gpt.entity.config_entity import DataTokenizerConfig
 from ap_gpt.ap_logger import logging
 from ap_gpt.utils.main_utils import read_data, save_data
@@ -46,6 +46,7 @@ class DataTokenizer:
     """
 
     def __init__(self,
+                 data_merging_artifact: DataMergingArtifact,
                  data_splitting_artifact: Union[DataSplittingArtifact, None] = None,
                  data_tokenizer_config: DataTokenizerConfig = DataTokenizerConfig(),
                  sot_token: str = SOT_TOKEN,
@@ -61,6 +62,7 @@ class DataTokenizer:
             pad_token (dict): Padding token. Default is PAD_TOKEN.
             unk_token (str): Unknown token. Default is UNK_TOKEN.
         """
+        self.data_merging_artifact = data_merging_artifact
         self.data_tokenizer_config = data_tokenizer_config
         self.pad_token = pad_token
         self.unk_token = unk_token
@@ -336,11 +338,12 @@ class DataTokenizer:
         try:
             logging.info("Reading data from the file")
             df_train = read_data(self.data_splitting_artifact.train_data_file_path)
+            df_validation = read_data(self.data_splitting_artifact.validation_data_file_path)
             df_test = read_data(self.data_splitting_artifact.test_data_file_path)
 
             logging.info("Filling missing values with pad token")
             df_train = self.fill_na_with_pad(df_train)
-            df_test = self.fill_na_with_pad(df_test)
+            df_validation = self.fill_na_with_pad(df_validation)
 
             logging.info("Adding words to the tokenizer")
             self.add_words(df_train[[c for c in df_train.columns if not c.startswith(('action_', 'duration_', 'distance_'))]].values)
@@ -350,7 +353,13 @@ class DataTokenizer:
 
             logging.info("Tokenizing data completed")
             df_train_encoded = self.encode(df_train.values)
-            df_test_encoded = self.encode(df_test.values)
+            df_validation_encoded = self.encode(df_validation.values)
+
+            # Encode the test data
+            end_index = self.data_merging_artifact.household_columns_number + self.data_merging_artifact.person_columns_number
+            df_test = df_test.values[:, :end_index]
+            df_test_encoded = self.encode(df_test)
+
             pad_token_idx : Tuple[int, int, int] = self.encode(tuple(self.pad_token.values()))
 
             logging.info("Saving tokenizer")
@@ -362,6 +371,7 @@ class DataTokenizer:
             data_tokenizer_artifact = DataTokenizerArtifact(
                 tokenizer_file_path=self.data_tokenizer_config.tokenizer_file_path,
                 train_encoded_data_file_path=self.data_tokenizer_config.train_encoded_data_file_path,
+                validation_encoded_data_file_path=self.data_tokenizer_config.validation_encoded_data_file_path,
                 test_encoded_data_file_path=self.data_tokenizer_config.test_encoded_data_file_path,
                 pad_token_idx = pad_token_idx,
                 nb_actions= nb_actions,
@@ -369,8 +379,9 @@ class DataTokenizer:
             )
 
             logging.info("Save encoded data")
-            save_data(df_train_encoded, data_tokenizer_artifact.train_encoded_data_file_path)
-            save_data(df_test_encoded, data_tokenizer_artifact.test_encoded_data_file_path)
+            save_data(df_train_encoded, self.data_tokenizer_config.train_encoded_data_file_path)
+            save_data(df_validation_encoded, self.data_tokenizer_config.validation_encoded_data_file_path)
+            save_data(df_test_encoded, self.data_tokenizer_config.test_encoded_data_file_path)
 
             logging.info("Tokenizer initiated successfully")
             return data_tokenizer_artifact

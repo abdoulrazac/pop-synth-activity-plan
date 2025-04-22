@@ -25,6 +25,7 @@ shared_files : List[Tuple[str, bool]] = [
     ('config', True),
     ('config/schema.yml', False),
     ('config/search_grid.yml', False),
+    ("config/generating_param_grid.yml", False),
 
     # Pipelines directories
     ('main.py', False),
@@ -59,7 +60,7 @@ ap_files : List[Tuple[str, bool]] = [
     ('components/data_merging.py', False),
     ('components/data_splitting.py', False),
     ('components/model_trainer.py', False),
-    ('components/model_evaluation.py', False),
+    ('components/model_selection.py', False),
     ('components/data_to_sequence.py', False),
     ('components/data_tokenizer.py', False),
 

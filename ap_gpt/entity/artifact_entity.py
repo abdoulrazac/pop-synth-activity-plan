@@ -39,19 +39,23 @@ class DataProcessingArtifact:
 @dataclass
 class DataMergingArtifact:
     merged_data_file_path: str
+    household_columns_number: int
+    person_columns_number: int
+    trip_columns_number: int
 
 @dataclass
 class DataSplittingArtifact:
     train_data_file_path: str
-    test_data_file_path: str
     validation_data_file_path: str
+    test_data_file_path: str
 
 @dataclass
 class DataToSequenceArtifact:
     train_x_data_as_sequence_file_path: str
     train_y_data_as_sequence_file_path : str
+    validation_x_data_as_sequence_file_path: str
+    validation_y_data_as_sequence_file_path : str
     test_x_data_as_sequence_file_path: str
-    test_y_data_as_sequence_file_path : str
     max_sequence_length: int
 
 
@@ -60,6 +64,7 @@ class DataToSequenceArtifact:
 class DataTokenizerArtifact:
     tokenizer_file_path: str
     train_encoded_data_file_path: str
+    validation_encoded_data_file_path: str
     test_encoded_data_file_path: str
     pad_token_idx: Tuple[int, int, int]
     nb_actions: int
@@ -77,7 +82,7 @@ class MetricArtifact:
     action_metrics: ModelMetrics
     duration_metrics: ModelMetrics
     distance_metrics: ModelMetrics
-    best_model_test_loss : float
+    best_model_validation_loss : float
 
     def to_json(self) :
         return {
@@ -99,7 +104,7 @@ class MetricArtifact:
                 "recall": self.distance_metrics.recall,
                 "f1_score": self.distance_metrics.f1_score
             },
-            "best_model_test_loss": self.best_model_test_loss
+            "best_model_test_loss": self.best_model_validation_loss
         }
 
 
@@ -110,3 +115,9 @@ class ModelTrainerArtifact:
     metric_artifact: MetricArtifact
     model_trainer_config: str
     model_name: str
+
+@dataclass
+class ModelSelectionArtifact:
+    model_path: str
+    model_config: str
+    data_generated_store_path: str

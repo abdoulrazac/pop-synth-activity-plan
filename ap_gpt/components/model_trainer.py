@@ -14,6 +14,7 @@ from torchmetrics.classification import Accuracy, Precision, Recall, F1Score
 from ap_gpt.ap_exception import APException
 from ap_gpt.ap_logger import logging
 from ap_gpt.components.data_tokenizer import DataTokenizer
+from ap_gpt.constants import ACTION_NB_COLS
 from ap_gpt.entity.artifact_entity import DataToSequenceArtifact, ModelTrainerArtifact, DataTokenizerArtifact, \
     MetricArtifact, ModelMetrics, DataMergingArtifact
 from ap_gpt.entity.config_entity import ModelTrainerConfig
@@ -42,8 +43,8 @@ class ModelTrainer:
         self.device = model_trainer_config.device
         self.name_vocab_size = model_trainer_config.name_vocab_size
         self.pad_token_idx = model_trainer_config.pad_token_idx
-        self.max_sequence_length = model_trainer_config.max_sequence_length
-        self.action_start_idx = model_trainer_config.action_start_idx
+        self.action_start_idx = data_merging_artifact.household_columns_number + data_merging_artifact.person_columns_number
+        self.max_sequence_length = self.action_start_idx + data_merging_artifact.trip_columns_number
 
         # Best model path. Create parent directory if it does not exist
         self.best_model_path = model_trainer_config.best_model_path
@@ -160,13 +161,13 @@ class ModelTrainer:
         return self.losses
 
     @staticmethod
-    def compute_metrics(y_trues: Tensor, y_preds: Tensor, num_classes: int = 1) -> ModelMetrics:
+    def compute_metrics(y_true: Tensor, y_pred: Tensor, num_classes: int = 1) -> ModelMetrics:
         """
         This method of ModelTrainer class is responsible for computing the metrics
 
         Args:
-            y_trues: Tensor. True labels
-            y_preds: Tensor. Predicted labels
+            y_true: Tensor. True labels
+            y_pred: Tensor. Predicted labels
             num_classes: int. Number of classes. Default is 1.
         """
         try:
@@ -175,10 +176,10 @@ class ModelTrainer:
             recall = Recall(task="multiclass", num_classes=num_classes, average='macro')
             f1 = F1Score(task="multiclass", num_classes=num_classes, average='macro')
 
-            accuracy_score = accuracy(y_trues, y_preds)
-            precision_score = precision(y_trues, y_preds)
-            recall_score = recall(y_trues, y_preds)
-            f1_score = f1(y_trues, y_preds)
+            accuracy_score = accuracy(y_true, y_pred)
+            precision_score = precision(y_true, y_pred)
+            recall_score = recall(y_true, y_pred)
+            f1_score = f1(y_true, y_pred)
 
             return ModelMetrics(
                 accuracy=accuracy_score.item(),
@@ -283,10 +284,10 @@ class ModelTrainer:
         )
 
     def generate(self, X, temperature=1.0, do_sample=False, top_k=None) -> np.ndarray:
+
         with torch.no_grad():
-            idx = self.action_start_idx
-            while idx < self.max_sequence_length:
-                y1, y2, y3 = self.model(torch.tensor(X).to(self.device), training=False)
+            for idx in range(self.action_start_idx, self.max_sequence_length, ACTION_NB_COLS):
+                y1, y2, y3 = self.model(torch.tensor(X).to(self.device))
 
                 y1_probs = torch.softmax(y1, dim=1) / temperature
                 y2_probs = torch.softmax(y2, dim=1) / temperature
@@ -297,19 +298,19 @@ class ModelTrainer:
                     top_y2 = torch.topk(y2_probs, top_k, dim=1)
                     top_y3 = torch.topk(y3_probs, top_k, dim=1)
 
-                    # Replace the probabilities with the top k probabilities and set the rest to -inf
-                    y1_probs = torch.full_like(y1_probs, -float('inf'))
-                    y2_probs = torch.full_like(y2_probs, -float('inf'))
-                    y3_probs = torch.full_like(y3_probs, -float('inf'))
+                    # Replace the probabilities with the top k probabilities and set the rest to 0
+                    y1_probs = torch.full_like(y1_probs, 0)
+                    y2_probs = torch.full_like(y2_probs, 0)
+                    y3_probs = torch.full_like(y3_probs, 0)
 
                     y1_probs.scatter_(1, top_y1.indices, top_y1.values)
                     y2_probs.scatter_(1, top_y2.indices, top_y2.values)
                     y3_probs.scatter_(1, top_y3.indices, top_y3.values)
 
                 if do_sample:
-                    y1 = torch.multinomial(y1_probs, num_samples=1)
-                    y2 = torch.multinomial(y2_probs, num_samples=1)
-                    y3 = torch.multinomial(y3_probs, num_samples=1)
+                    y1 = torch.multinomial(y1_probs, num_samples=1).squeeze()
+                    y2 = torch.multinomial(y2_probs, num_samples=1).squeeze()
+                    y3 = torch.multinomial(y3_probs, num_samples=1).squeeze()
                 else:
                     y1 = torch.argmax(y1_probs, dim=1)
                     y2 = torch.argmax(y2_probs, dim=1)
@@ -319,8 +320,11 @@ class ModelTrainer:
                 y2 = self.tokenizer.convert_index_from_name("duration", y2.cpu().numpy())
                 y3 = self.tokenizer.convert_index_from_name("distance", y3.cpu().numpy())
 
-                X[:, idx:(idx + 3)] = np.stack((y1, y2, y3), axis=1) # noqa
-                idx += 3
+                if idx + 3 < self.max_sequence_length:
+                    X[:, idx:(idx+3)] = np.array([y1, y2, y3]).T
+                else:
+                    X = np.concatenate((X, np.array([y1, y2, y3]).T), axis=1)
+
         return X
 
     def initiate_training(self) -> ModelTrainerArtifact:

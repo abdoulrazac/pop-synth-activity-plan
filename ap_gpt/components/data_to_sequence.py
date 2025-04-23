@@ -1,19 +1,17 @@
 import sys
-import os
-
-import numpy as np
-import pandas as pd
 from typing import Union, List, Tuple
+
+import pandas as pd
 from from_root import from_root
 
 from ap_gpt.ap_exception import APException
+from ap_gpt.ap_logger import logging
 from ap_gpt.components.data_tokenizer import DataTokenizer
 from ap_gpt.constants import *
-from ap_gpt.entity.artifact_entity import DataSplittingArtifact, DataTokenizerArtifact, DataToSequenceArtifact, \
+from ap_gpt.entity.artifact_entity import DataTokenizerArtifact, DataToSequenceArtifact, \
     DataMergingArtifact
 from ap_gpt.entity.config_entity import DataToSequenceConfig
 from ap_gpt.utils.main_utils import read_yaml_file, read_data, save_data
-from ap_gpt.ap_logger import logging
 
 
 class DataToSequence:
@@ -53,17 +51,17 @@ class DataToSequence:
         """
         This method of DataToSequence class is responsible for splitting the row into a sequence
         """
-
+        sequence_length = len(sequence)
         x_list, y_list = list(), list()
         # start_idx = len(sequence) - self.nb_actions * self.action_nb_cols
         start_idx = self.data_merging_artifact.household_columns_number + self.data_merging_artifact.person_columns_number
-        end_idx = len(sequence) - self.action_nb_cols
+        end_idx = sequence_length - self.action_nb_cols
         for i in range(start_idx, end_idx, self.action_nb_cols):
             seq_x, seq_y = list(sequence[:i]), list(sequence[i:i + self.action_nb_cols])
             if drop_pad and ((seq_y[0] in self.pad_token_idx) or (seq_y[1] in self.pad_token_idx) or (seq_y[2] in self.pad_token_idx)):
                 break
             if len(seq_x) <= end_idx :
-                seq_x += self.pad_token_idx * ((end_idx - len(seq_x)) //  self.action_nb_cols)
+                seq_x += self.pad_token_idx * ((sequence_length - len(seq_x)) //  self.action_nb_cols)
 
             x_list.append(np.array(seq_x))
             y_list.append(np.array(seq_y))
@@ -103,7 +101,6 @@ class DataToSequence:
 
         return x_list
 
-
     def initiate_data_to_sequence(self) -> DataToSequenceArtifact:
         """
         This method of DataToSequence class is responsible for initiating the data to sequence process
@@ -119,9 +116,12 @@ class DataToSequence:
             df_train_x_seq, df_train_y_seq = self.split_data_to_sequence(df_train, drop_pad=self.data_to_sequence_config.drop_pad)
             df_validation_x_seq, df_validation_y_seq = self.split_data_to_sequence(df_validation, drop_pad=self.data_to_sequence_config.drop_pad)
 
+            # Max sequence length
+            max_sequence_length = df_train_x_seq.shape[1]
+
             # Split test data to sequence
             df_test = read_data(self.data_tokenizer_artifact.test_encoded_data_file_path)
-            df_test_x_seq = self.split_test_data_to_sequence(df_test, max_sequence_length=df_train_x_seq.shape[1])
+            df_test_x_seq = self.split_test_data_to_sequence(df_test, max_sequence_length=max_sequence_length)
 
             data_to_sequence_artifact = DataToSequenceArtifact(
                 train_x_data_as_sequence_file_path=self.data_to_sequence_config.train_x_data_as_sequence_file_path,
@@ -129,7 +129,7 @@ class DataToSequence:
                 validation_x_data_as_sequence_file_path=self.data_to_sequence_config.validation_x_data_as_sequence_file_path,
                 validation_y_data_as_sequence_file_path=self.data_to_sequence_config.validation_y_data_as_sequence_file_path,
                 test_x_data_as_sequence_file_path=self.data_to_sequence_config.test_x_data_as_sequence_file_path,
-                max_sequence_length = df_train_x_seq.shape[1]
+                max_sequence_length = max_sequence_length
             )
 
             # Save data to sequence

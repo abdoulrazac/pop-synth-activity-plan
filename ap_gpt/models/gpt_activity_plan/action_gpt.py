@@ -24,13 +24,14 @@ class ActionGPT(nn.Module):
         self.dropout = nn.Dropout(dropout)
 
         ## FC for each output (action, duration, distance)
-        self.fc_action_out = nn.Linear(self.max_sequence_length * embed_size, config.name_vocab_size["action"], bias=False)
-        self.fc_duration_out = nn.Linear(self.max_sequence_length * embed_size, config.name_vocab_size["duration"], bias=False)
-        self.fc_distance_out = nn.Linear(self.max_sequence_length * embed_size, config.name_vocab_size["distance"], bias=False)
+        self.fc_action_out = nn.Linear(self.max_sequence_length * embed_size, config.name_vocab_size["action"])
+        self.fc_duration_out = nn.Linear(self.max_sequence_length * embed_size, config.name_vocab_size["duration"])
+        self.fc_distance_out = nn.Linear(self.max_sequence_length * embed_size, config.name_vocab_size["distance"])
 
     def make_mask(self, x):
-        mask = torch.tensor(~np.isin(x.cpu().numpy(), list(self.pad_token_idx))).unsqueeze(1).unsqueeze(2)
-        return mask.to(self.device)
+        pad_token_mask = torch.isin(x, torch.tensor(self.pad_token_idx, device=x.device))
+        mask = ~pad_token_mask.unsqueeze(1).unsqueeze(2)
+        return mask
 
     def forward(self, x, training=False):
         N, seq_length = x.shape

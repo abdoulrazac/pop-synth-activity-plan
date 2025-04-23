@@ -208,10 +208,12 @@ class DataTokenizer:
         elif type(index) == np.array or type(index) == np.ndarray:
             out = [self.idx2word.get(i, self.unk_token) for i in index.flatten()]
             return np.array(out).reshape(index.shape)
+        return None
 
     def convert_index_to_name(self,
                               name: Literal['action', 'duration', 'distance'],
-                              index : Union[int, List[int], Tuple[int], np.array, np.ndarray]):
+                              index : Union[int, List[int], Tuple[int], np.array, np.ndarray]
+                              ) -> Union[int, List[int], Tuple[int], np.array, np.ndarray]:
         """
         Converts the index of a word from the general vocabulary to the index of the word in a given name.
 
@@ -231,10 +233,13 @@ class DataTokenizer:
             out = [self.name2idx[name].get(self.idx2word.get(i, self.unk_token), self.unk_token) for i in
                    index.flatten()]
             return np.array(out).reshape(index.shape)
+        else:
+            raise ValueError(f"Unsupported type for index: {type(index)}. Expected int, list, tuple, or numpy array.")
 
     def convert_index_from_name(self,
                                 name : Literal['action', 'duration', 'distance'],
-                                index : Union[int, List[int], Tuple[int], np.array, np.ndarray]):
+                                index : Union[int, List[int], Tuple[int], np.array, np.ndarray]
+                                ) -> Union[int, List[int], Tuple[int], np.array, np.ndarray] :
         """
         Converts the index of a word from a given name to the index of the word in the general vocabulary.
 
@@ -254,6 +259,8 @@ class DataTokenizer:
             out = [self.word2idx.get(self.idx2name[name].get(int(i), self.unk_token), self.unk_token) for i in
                    index.flatten()]
             return np.array(out).reshape(index.shape)
+        else:
+            raise ValueError(f"Unsupported type for index: {type(index)}. Expected int, list, tuple, or numpy array.")
 
     def save(self, path):
         """

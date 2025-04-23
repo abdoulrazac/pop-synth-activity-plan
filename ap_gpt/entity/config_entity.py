@@ -175,7 +175,6 @@ class ModelTrainerConfig :
     forward_expansion : int = 4
     num_layers : int = 1
     vocab_size : int = 256
-    action_start_idx : int = 19
     epochs : int = 1 # 00
     batch_size : int = 128
     verbose : bool = False

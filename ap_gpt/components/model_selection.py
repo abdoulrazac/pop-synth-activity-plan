@@ -74,7 +74,7 @@ class ModelSelection :
                 pad_token_idx=(int(config["pad_token_idx"][0]), int(config["pad_token_idx"][1]), int(config["pad_token_idx"][2])),
                 nb_actions=int(config["nb_actions"]),
                 name_vocab_size=dict(config["name_vocab_size"]),
-                max_sequence_length=int(config["max_sequence_length"]),
+                # max_sequence_length=int(config["max_sequence_length"]),
                 embed_size=int(config["embed_size"]),
                 num_layers=int(config["num_layers"]),
                 forward_expansion=int(config["forward_expansion"]),
@@ -112,7 +112,7 @@ class ModelSelection :
                             X=input_data,
                             temperature=temperature,
                             do_sample=do_sample,
-                            top_k=top_k
+                            top_k=eval(str(top_k)) if top_k else None,
                         )
 
                         # Save the file
@@ -126,7 +126,7 @@ class ModelSelection :
     def initiate_model_selection(self) -> ModelSelectionArtifact:
 
         # Read the input data
-        input_data = read_data(self.data_to_sequence_artifact.test_x_data_as_sequence_file_path, is_array=True)
+        input_data = read_data(self.data_to_sequence_artifact.test_x_data_as_sequence_file_path)
 
         # Get the best model based on the metric
         self.get_best_model_based_on_metric()

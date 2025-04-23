@@ -5,6 +5,7 @@ import numpy as np
 
 from concurrent.futures import ThreadPoolExecutor
 from from_root import from_root
+from skimage.future.graph.setup import base_path
 
 from ap_gpt.ap_exception import APException
 from ap_gpt.ap_logger import logging
@@ -364,35 +365,43 @@ class TrainPipeline:
             logging.info("      Entered the run_pipeline method of TrainPipeline class     ")
             logging.info("==================================================================")
 
-            # logging.info("===> Executing data ingestion <===")
-            # data_ingestion_artifact = self.start_data_ingestion()
-            # logging.info("Data ingestion completed successfully")
-            #
-            # logging.info("===> Executing data preprocessing <===")
-            # data_processing_artifact = self.start_data_preprocessing(data_ingestion_artifact)
-            # logging.info("Data preprocessing completed successfully")
-            #
-            # logging.info("===> Executing data merging <===")
-            # data_merging_artifact = self.start_data_merging(data_processing_artifact)
-            # logging.info("Data merging completed successfully")
-            #
-            # logging.info("===> Executing data splitting <===")
-            # data_splitting_artifact = self.start_data_splitting(data_merging_artifact)
-            # logging.info("Data splitting completed successfully")
-            #
-            # logging.info("===> Executing data tokenization <===")
-            # data_tokenizer_artifact = self.start_data_tokenization(
-            #     data_merging_artifact=data_merging_artifact,
-            #     data_splitting_artifact=data_splitting_artifact
-            # )
-            # logging.info("Data tokenization completed successfully")
-            #
-            # logging.info("===> Executing data to sequence conversion <===")
-            # data_to_sequence_artifact = self.start_data_to_sequence(
-            #     data_merging_artifact=data_merging_artifact,
-            #     data_tokenizer_artifact=data_tokenizer_artifact
-            # )
-            # logging.info("Data to sequence conversion completed successfully")
+            logging.info("===> Executing data ingestion <===")
+            data_ingestion_artifact = self.start_data_ingestion()
+            logging.info("Data ingestion completed successfully")
+
+            logging.info("===> Executing data preprocessing <===")
+            data_processing_artifact = self.start_data_preprocessing(data_ingestion_artifact)
+            logging.info("Data preprocessing completed successfully")
+
+            logging.info("===> Executing data merging <===")
+            data_merging_artifact = self.start_data_merging(data_processing_artifact)
+            logging.info("Data merging completed successfully")
+
+            logging.info("===> Executing data splitting <===")
+            data_splitting_artifact = self.start_data_splitting(data_merging_artifact)
+            logging.info("Data splitting completed successfully")
+
+            logging.info("===> Executing data tokenization <===")
+            data_tokenizer_artifact = self.start_data_tokenization(
+                data_merging_artifact=data_merging_artifact,
+                data_splitting_artifact=data_splitting_artifact
+            )
+            logging.info("Data tokenization completed successfully")
+
+            logging.info("===> Executing data to sequence conversion <===")
+            data_to_sequence_artifact = self.start_data_to_sequence(
+                data_merging_artifact=data_merging_artifact,
+                data_tokenizer_artifact=data_tokenizer_artifact
+            )
+            logging.info("Data to sequence conversion completed successfully")
+
+            logging.info("===> Executing search grid training <===")
+            self.start_grid_search_training(
+                data_merging_artifact=data_merging_artifact,
+                data_tokenizer_artifact=data_tokenizer_artifact,
+                data_to_sequence_artifact=data_to_sequence_artifact,
+            )
+            logging.info("Search grid training completed successfully")
 
             # ----> A supprimer après test <---- #
 
@@ -413,41 +422,36 @@ class TrainPipeline:
             #     max_sequence_length=150,
             # )
 
-            data_merging_artifact = DataMergingArtifact(
-                merged_data_file_path='/Users/abdoul/Desktop/these/Activity-Plan/artifact/ActionGPT/data/merged_data.parquet',
-                household_columns_number=6,
-                person_columns_number=12,
-                trip_columns_number=135
-            )
-
-            data_tokenizer_artifact = DataTokenizerArtifact(
-                tokenizer_file_path='/Users/abdoul/Desktop/these/Activity-Plan/artifact/ActionGPT/data/tokenizer.txt',
-                train_encoded_data_file_path='/Users/abdoul/Desktop/these/Activity-Plan/artifact/ActionGPT/data/train_encoded_data.npy',
-                validation_encoded_data_file_path='/Users/abdoul/Desktop/these/Activity-Plan/artifact/ActionGPT/data/validation_encoded_data.npy',
-                test_encoded_data_file_path='/Users/abdoul/Desktop/these/Activity-Plan/artifact/ActionGPT/data/test_encoded_data.npy',
-                pad_token_idx=(80, 95, 138),
-                nb_actions=45,
-                name_vocab_size={'action': 13, 'duration': 45, 'distance': 49}
-            )
-
-            data_to_sequence_artifact = DataToSequenceArtifact(
-                train_x_data_as_sequence_file_path='/Users/abdoul/Desktop/these/Activity-Plan/artifact/ActionGPT/data/X_train_data_as_sequence.npy',
-                train_y_data_as_sequence_file_path='/Users/abdoul/Desktop/these/Activity-Plan/artifact/ActionGPT/data/Y_train_data_as_sequence.npy',
-                validation_x_data_as_sequence_file_path='/Users/abdoul/Desktop/these/Activity-Plan/artifact/ActionGPT/data/X_validation_data_as_sequence.npy',
-                validation_y_data_as_sequence_file_path='/Users/abdoul/Desktop/these/Activity-Plan/artifact/ActionGPT/data/Y_validation_data_as_sequence.npy',
-                test_x_data_as_sequence_file_path='/Users/abdoul/Desktop/these/Activity-Plan/artifact/ActionGPT/data/X_test_data_as_sequence.npy',
-                max_sequence_length=150
-            )
+            # base_path = '/Users/abdoul/Desktop/these/Activity-Plan'
+            # base_path = '/Users/doctorant/Desktop/These/pop-synth-activity-plan'
+            #
+            # data_merging_artifact = DataMergingArtifact(
+            #     merged_data_file_path= base_path + '/artifact/ActionGPT/data/merged_data.parquet',
+            #     household_columns_number=6,
+            #     person_columns_number=12,
+            #     trip_columns_number=135
+            # )
+            #
+            # data_tokenizer_artifact = DataTokenizerArtifact(
+            #     tokenizer_file_path= base_path + '/artifact/ActionGPT/data/tokenizer.txt',
+            #     train_encoded_data_file_path= base_path + '/artifact/ActionGPT/data/train_encoded_data.npy',
+            #     validation_encoded_data_file_path= base_path + '/artifact/ActionGPT/data/validation_encoded_data.npy',
+            #     test_encoded_data_file_path= base_path + '/artifact/ActionGPT/data/test_encoded_data.npy',
+            #     pad_token_idx=(80, 95, 138),
+            #     nb_actions=45,
+            #     name_vocab_size={'action': 13, 'duration': 45, 'distance': 49}
+            # )
+            #
+            # data_to_sequence_artifact = DataToSequenceArtifact(
+            #     train_x_data_as_sequence_file_path= base_path + '/artifact/ActionGPT/data/X_train_data_as_sequence.npy',
+            #     train_y_data_as_sequence_file_path= base_path + '/artifact/ActionGPT/data/Y_train_data_as_sequence.npy',
+            #     validation_x_data_as_sequence_file_path= base_path + '/artifact/ActionGPT/data/X_validation_data_as_sequence.npy',
+            #     validation_y_data_as_sequence_file_path= base_path + '/artifact/ActionGPT/data/Y_validation_data_as_sequence.npy',
+            #     test_x_data_as_sequence_file_path= base_path + '/artifact/ActionGPT/data/X_test_data_as_sequence.npy',
+            #     max_sequence_length=150
+            # )
 
             # ------------------------------------#
-
-            # logging.info("===> Executing search grid training <===")
-            # self.start_grid_search_training(
-            #     data_merging_artifact=data_merging_artifact,
-            #     data_tokenizer_artifact=data_tokenizer_artifact,
-            #     data_to_sequence_artifact=data_to_sequence_artifact,
-            # )
-            # logging.info("Search grid training completed successfully")
 
             logging.info("===> Executing model selection and data generating <===")
             model_selection_artifact = self.start_model_selection(

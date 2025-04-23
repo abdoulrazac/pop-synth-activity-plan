@@ -1,7 +1,7 @@
-nb_epochs: 1
+nb_epochs: 100
 heads : 1
 batch_size : 256
-list_num_layers : [2]
+list_num_layers : [12]
 list_embed_size : [2]
 list_forward_expansion : [2]
 list_dropout : [0.2]

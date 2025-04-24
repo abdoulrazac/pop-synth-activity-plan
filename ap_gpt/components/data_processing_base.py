@@ -108,7 +108,7 @@ class DataProcessingBase(ABC):
             new_dat[col] = new_dat[col].astype('object')
         return new_dat
 
-    def recode_categorical_columns(self, data: pd.DataFrame, table_name) -> pd.DataFrame:
+    def recode_categorical_columns(self, data: pd.DataFrame, table_name: str) -> pd.DataFrame:
         """Recode categorical columns
 
         Args:
@@ -126,6 +126,22 @@ class DataProcessingBase(ABC):
                 new_dat.loc[data[col].isin(v), col] = k
             new_dat[col] = new_dat[col].astype(object)
         return new_dat
+
+    def remove_unnecessary_columns(self, data: pd.DataFrame, table_name: str):
+        """Remove columns from the dataframe
+
+        Args:
+            data (pd.DataFrame): Dataframe to remove columns
+            table_name (str): Name of the table to remove columns
+
+        Returns:
+            pd.DataFrame: Dataframe with removed columns
+        """
+        try:
+            data.drop(self._schema_config[table_name][SCHEMA_REMOVE_NAME], axis=1, inplace=True)
+            return data
+        except Exception as e:
+            raise APException(e, sys)
 
     @abstractmethod
     def initiate_data_processing(self) :

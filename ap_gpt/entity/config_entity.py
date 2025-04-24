@@ -241,7 +241,6 @@ class ModelTrainerConfig :
             f'"num_layers": {self.num_layers}, '
             f'"vocab_size": {self.vocab_size}, '
             f'"name_vocab_size": {self.name_vocab_size}, '
-            f'"action_start_idx": {self.action_start_idx}, '
             f'"epochs": {self.epochs}, '
             f'"batch_size": {self.batch_size}, '
             f'"model_store_path": "{self.model_store_path}",'
@@ -249,7 +248,6 @@ class ModelTrainerConfig :
             f'"nb_actions": {self.nb_actions}, '
             f'"verbose": {self.verbose}, '
             f'"device": "{self.device}", '
-            f'"action_start_idx": {self.action_start_idx},'
             f'"max_sequence_length": {self.max_sequence_length}, '
             "}"
         )

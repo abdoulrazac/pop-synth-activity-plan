@@ -177,9 +177,7 @@ class TripDataProcessing(DataProcessingBase):
         df_actions.columns = [f"{x}_{y}" for x, y in df_actions.columns]
         df_actions = df_actions.rename(columns={f"{self.person_id_col}_": self.person_id_col})
         df_actions = df_actions.sort_values(by=[self.person_id_col])
-        df_actions = df_actions[[self.person_id_col] + np.concatenate(
-            ([[f"action_{i}", f"duration_{i}", f"distance_{i}"] for i in range(nb_actions)])
-        ).tolist()]
+        df_actions = df_actions[[self.person_id_col] +  [f'{label}_{i}' for i in range(nb_actions) for label in ['action', 'duration', 'distance']]]
         return df_actions
 
     def initiate_data_processing(self) -> Optional[TripDataProcessingArtifact]:

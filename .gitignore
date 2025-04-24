@@ -2,7 +2,7 @@
 .idea
 
 # Archive files
-artifact
+artifact**
 
 # Local env files
 # dotenv

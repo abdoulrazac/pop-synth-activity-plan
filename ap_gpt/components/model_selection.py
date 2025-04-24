@@ -6,13 +6,11 @@ import pandas as pd
 from from_root import from_root
 
 from ap_gpt.ap_exception import APException
-from ap_gpt.ap_logger import logging
-
 from ap_gpt.components.model_trainer import ModelTrainer
 from ap_gpt.constants import GENERATING_PARAM_GRID_FILE_PATH
 from ap_gpt.entity.artifact_entity import DataTokenizerArtifact, DataToSequenceArtifact, ModelSelectionArtifact, \
     DataMergingArtifact
-from ap_gpt.entity.config_entity import ModelSelectionConfig, ModelTrainerConfig, TrainingPipelineConfig
+from ap_gpt.entity.config_entity import ModelSelectionConfig, ModelTrainerConfig
 from ap_gpt.models.gpt_activity_plan.action_gpt import ActionGPT
 from ap_gpt.utils.main_utils import read_data, read_yaml_file, save_data, write_yaml_file
 
@@ -74,7 +72,7 @@ class ModelSelection :
                 pad_token_idx=(int(config["pad_token_idx"][0]), int(config["pad_token_idx"][1]), int(config["pad_token_idx"][2])),
                 nb_actions=int(config["nb_actions"]),
                 name_vocab_size=dict(config["name_vocab_size"]),
-                # max_sequence_length=int(config["max_sequence_length"]),
+                max_sequence_length=int(config["max_sequence_length"]),
                 embed_size=int(config["embed_size"]),
                 num_layers=int(config["num_layers"]),
                 forward_expansion=int(config["forward_expansion"]),
@@ -114,12 +112,27 @@ class ModelSelection :
                             do_sample=do_sample,
                             top_k=eval(str(top_k)) if top_k else None,
                         )
-
                         # Save the file
                         save_data(df, os.path.join(
                             self.model_selection_config.data_generated_store_path,
-                            f"{temperature}_{do_sample}_{top_k}.parquet"
+                            f"{temperature}_{do_sample}_{top_k}.npy"
                         ))
+
+                        # Encode and save the data
+                        df_decoded = self.model_trainer.tokenizer.decode(df)
+                        df_decoded = pd.DataFrame(
+                            df_decoded,
+                            columns=(
+                                    self.data_merging_artifact.household_columns +
+                                    self.data_merging_artifact.person_columns +
+                                    self.data_merging_artifact.trip_columns
+                            )
+                        )
+                        save_data(df_decoded, os.path.join(
+                            self.model_selection_config.data_generated_store_path,
+                            f"{temperature}_{do_sample}_{top_k}_decoded.parquet"
+                        ))
+
         except Exception as e:
             raise APException(e, sys) from e
 

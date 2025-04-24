@@ -69,6 +69,10 @@ class PersonDataProcessing(DataProcessingBase):
             if not is_valid_data:
                 raise ValueError(f"Invalid data in person data: {self.table_name}")
 
+            # Remove unnecessary col
+            logging.info("Remove unnecessary columns from person data")
+            df_person = self.remove_unnecessary_columns(df_person, self.table_name)
+
             # recode numerical columns
             logging.info("Recode person numerical columns")
             df_person = self.cut_numerical_columns(df_person, self.table_name)

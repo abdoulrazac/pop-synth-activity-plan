@@ -30,6 +30,7 @@ households:
       '3-4': [ 3, 5 ]
       '5+': [ 5, 20 ]
   recoding:
+  to_remove: []
 
 persons:
   identifier: 'person_id'
@@ -75,6 +76,7 @@ persons:
       worker: [ 'worker' ]
       manager_intellectual_professions: [ 'manager_intellectual_professions' ]
       craftsman_trader_entrepreneur: [ 'craftsman_trader_entrepreneur' ]
+  to_remove: ['number_of_trips']
 
 trips:
   identifier: 'trip_id'
@@ -95,3 +97,4 @@ trips:
   relational:
     - 'trip_id'
     - 'person_id'
+  to_remove: []

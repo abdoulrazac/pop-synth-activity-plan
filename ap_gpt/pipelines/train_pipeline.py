@@ -365,6 +365,62 @@ class TrainPipeline:
             logging.info("      Entered the run_pipeline method of TrainPipeline class     ")
             logging.info("==================================================================")
 
+            # ----> A supprimer après test <---- #
+
+            # data_tokenizer_artifact = DataTokenizerArtifact(
+            #     tokenizer_file_path=self.data_tokenizer_config.tokenizer_file_path,
+            #     train_encoded_data_file_path=self.data_tokenizer_config.train_encoded_data_file_path,
+            #     validation_encoded_data_file_path=self.data_tokenizer_config.test_encoded_data_file_path,
+            #     pad_token_idx=(81, 97, 139),
+            #     nb_actions=45,
+            #     name_vocab_size = {'action': 13, 'duration': 45, 'distance': 49}
+            # )
+            #
+            # data_to_sequence_artifact = DataToSequenceArtifact(
+            #     train_x_data_as_sequence_file_path=self.data_to_sequence_config.train_x_data_as_sequence_file_path,
+            #     train_y_data_as_sequence_file_path=self.data_to_sequence_config.train_y_data_as_sequence_file_path,
+            #     validation_x_data_as_sequence_file_path=self.data_to_sequence_config.test_x_data_as_sequence_file_path,
+            #     validation_y_data_as_sequence_file_path=self.data_to_sequence_config.test_y_data_as_sequence_file_path,
+            #     max_sequence_length=150,
+            # )
+
+            # base_path = '/Users/abdoul/Desktop/these/Activity-Plan'
+            # base_path = '/Users/doctorant/Desktop/These/pop-synth-activity-plan'
+            #
+            # data_merging_artifact = DataMergingArtifact(
+            #     merged_data_file_path= base_path + '/artifact/ActionGPT/data/merged_data.parquet',
+            #     household_columns_number=6,
+            #     person_columns_number=12,
+            #     trip_columns_number=135,
+            #     household_columns=['household_size', 'number_of_bikes', 'number_of_vehicles',
+            #                        'house_occupation_type', 'has_internet', 'house_type'],
+            #     person_columns=['link_ref_person', 'socioprofessional_class', 'is_adolescent',
+            #                     'employed', 'sex', 'age', 'school_level', 'studies', 'has_pt_subscription',
+            #                     'travel_respondent', 'has_license', 'number_of_trips'],
+            #     trip_columns=[f'{label}_{i}' for i in range(45) for label in ['action', 'duration', 'distance']]
+            # )
+            #
+            # data_tokenizer_artifact = DataTokenizerArtifact(
+            #     tokenizer_file_path= base_path + '/artifact/ActionGPT/data/tokenizer.txt',
+            #     train_encoded_data_file_path= base_path + '/artifact/ActionGPT/data/train_encoded_data.npy',
+            #     validation_encoded_data_file_path= base_path + '/artifact/ActionGPT/data/validation_encoded_data.npy',
+            #     test_encoded_data_file_path= base_path + '/artifact/ActionGPT/data/test_encoded_data.npy',
+            #     pad_token_idx=(80, 95, 138),
+            #     nb_actions=45,
+            #     name_vocab_size={'action': 13, 'duration': 45, 'distance': 49}
+            # )
+            #
+            # data_to_sequence_artifact = DataToSequenceArtifact(
+            #     train_x_data_as_sequence_file_path= base_path + '/artifact/ActionGPT/data/X_train_data_as_sequence.npy',
+            #     train_y_data_as_sequence_file_path= base_path + '/artifact/ActionGPT/data/Y_train_data_as_sequence.npy',
+            #     validation_x_data_as_sequence_file_path= base_path + '/artifact/ActionGPT/data/X_validation_data_as_sequence.npy',
+            #     validation_y_data_as_sequence_file_path= base_path + '/artifact/ActionGPT/data/Y_validation_data_as_sequence.npy',
+            #     test_x_data_as_sequence_file_path= base_path + '/artifact/ActionGPT/data/X_test_data_as_sequence.npy',
+            #     max_sequence_length=153
+            # )
+
+            # ------------------------------------#
+
             logging.info("===> Executing data ingestion <===")
             data_ingestion_artifact = self.start_data_ingestion()
             logging.info("Data ingestion completed successfully")
@@ -403,55 +459,7 @@ class TrainPipeline:
             )
             logging.info("Search grid training completed successfully")
 
-            # ----> A supprimer après test <---- #
 
-            # data_tokenizer_artifact = DataTokenizerArtifact(
-            #     tokenizer_file_path=self.data_tokenizer_config.tokenizer_file_path,
-            #     train_encoded_data_file_path=self.data_tokenizer_config.train_encoded_data_file_path,
-            #     validation_encoded_data_file_path=self.data_tokenizer_config.test_encoded_data_file_path,
-            #     pad_token_idx=(81, 97, 139),
-            #     nb_actions=45,
-            #     name_vocab_size = {'action': 13, 'duration': 45, 'distance': 49}
-            # )
-            #
-            # data_to_sequence_artifact = DataToSequenceArtifact(
-            #     train_x_data_as_sequence_file_path=self.data_to_sequence_config.train_x_data_as_sequence_file_path,
-            #     train_y_data_as_sequence_file_path=self.data_to_sequence_config.train_y_data_as_sequence_file_path,
-            #     validation_x_data_as_sequence_file_path=self.data_to_sequence_config.test_x_data_as_sequence_file_path,
-            #     validation_y_data_as_sequence_file_path=self.data_to_sequence_config.test_y_data_as_sequence_file_path,
-            #     max_sequence_length=150,
-            # )
-
-            # base_path = '/Users/abdoul/Desktop/these/Activity-Plan'
-            # base_path = '/Users/doctorant/Desktop/These/pop-synth-activity-plan'
-            #
-            # data_merging_artifact = DataMergingArtifact(
-            #     merged_data_file_path= base_path + '/artifact/ActionGPT/data/merged_data.parquet',
-            #     household_columns_number=6,
-            #     person_columns_number=12,
-            #     trip_columns_number=135
-            # )
-            #
-            # data_tokenizer_artifact = DataTokenizerArtifact(
-            #     tokenizer_file_path= base_path + '/artifact/ActionGPT/data/tokenizer.txt',
-            #     train_encoded_data_file_path= base_path + '/artifact/ActionGPT/data/train_encoded_data.npy',
-            #     validation_encoded_data_file_path= base_path + '/artifact/ActionGPT/data/validation_encoded_data.npy',
-            #     test_encoded_data_file_path= base_path + '/artifact/ActionGPT/data/test_encoded_data.npy',
-            #     pad_token_idx=(80, 95, 138),
-            #     nb_actions=45,
-            #     name_vocab_size={'action': 13, 'duration': 45, 'distance': 49}
-            # )
-            #
-            # data_to_sequence_artifact = DataToSequenceArtifact(
-            #     train_x_data_as_sequence_file_path= base_path + '/artifact/ActionGPT/data/X_train_data_as_sequence.npy',
-            #     train_y_data_as_sequence_file_path= base_path + '/artifact/ActionGPT/data/Y_train_data_as_sequence.npy',
-            #     validation_x_data_as_sequence_file_path= base_path + '/artifact/ActionGPT/data/X_validation_data_as_sequence.npy',
-            #     validation_y_data_as_sequence_file_path= base_path + '/artifact/ActionGPT/data/Y_validation_data_as_sequence.npy',
-            #     test_x_data_as_sequence_file_path= base_path + '/artifact/ActionGPT/data/X_test_data_as_sequence.npy',
-            #     max_sequence_length=150
-            # )
-
-            # ------------------------------------#
 
             logging.info("===> Executing model selection and data generating <===")
             model_selection_artifact = self.start_model_selection(

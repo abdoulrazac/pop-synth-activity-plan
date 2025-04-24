@@ -44,10 +44,14 @@ class DataTokenizer:
         __repr__(self):
             Returns a string representation of the Tokenizer object.
     """
+    household_columns_number: int = 0
+    person_columns_number: int = 0
+    trip_columns_number: int = 0
+
 
     def __init__(self,
-                 data_merging_artifact: DataMergingArtifact,
-                 data_splitting_artifact: Union[DataSplittingArtifact, None] = None,
+                 data_merging_artifact: DataMergingArtifact = None,
+                 data_splitting_artifact: DataSplittingArtifact = None,
                  data_tokenizer_config: DataTokenizerConfig = DataTokenizerConfig(),
                  sot_token: str = SOT_TOKEN,
                  eot_token: dict = EOT_TOKEN,
@@ -57,12 +61,21 @@ class DataTokenizer:
         Initializes the tokenizer with special tokens and builds the vocabulary.
 
         Args:
+            data_merging_artifact (DataMergingArtifact): Data merging artifact.
+            data_splitting_artifact (DataSplittingArtifact, optional): Data splitting artifact. Defaults to None.
+            data_tokenizer_config (DataTokenizerConfig, optional): Data tokenizer configuration. Defaults to DataTokenizerConfig().
             sot_token (str): Start of text token. Default is SOT_TOKEN.
             eot_token (dict): End of text token. Default is EOT_TOKEN.
             pad_token (dict): Padding token. Default is PAD_TOKEN.
             unk_token (str): Unknown token. Default is UNK_TOKEN.
         """
-        self.data_merging_artifact = data_merging_artifact
+
+        if not data_merging_artifact is None:
+            self.household_columns_number = data_merging_artifact.household_columns_number
+            self.person_columns_number = data_merging_artifact.person_columns_number
+            self.trip_columns_number = data_merging_artifact.trip_columns_number
+
+
         self.data_tokenizer_config = data_tokenizer_config
         self.pad_token = pad_token
         self.unk_token = unk_token
@@ -184,6 +197,8 @@ class DataTokenizer:
         elif type(words) == np.array or type(words) == np.ndarray:
             out = [self.word2idx.get(word, self.word2idx[self.unk_token]) for word in words.flatten()]
             return np.array(out).reshape(words.shape)
+        else:
+            raise ValueError(f"Unsupported type for words: {type(words)}. Expected str, list, tuple, or numpy array.")
 
     def decode(self, index: Union[Union[int, List, Tuple, np.array, np.ndarray]]):
         """
@@ -363,7 +378,7 @@ class DataTokenizer:
             df_validation_encoded = self.encode(df_validation.values)
 
             # Encode the test data
-            end_index = self.data_merging_artifact.household_columns_number + self.data_merging_artifact.person_columns_number
+            end_index = self.household_columns_number + self.person_columns_number
             df_test = df_test.values[:, :end_index]
             df_test_encoded = self.encode(df_test)
 

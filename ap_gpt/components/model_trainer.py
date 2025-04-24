@@ -27,8 +27,8 @@ class ModelTrainer:
             self,
             model,
             data_merging_artifact: DataMergingArtifact,
-            model_trainer_config : ModelTrainerConfig,
-            data_tokenizer_artifact : DataTokenizerArtifact,
+            model_trainer_config: ModelTrainerConfig,
+            data_tokenizer_artifact: DataTokenizerArtifact,
             data_to_sequence_artifact: DataToSequenceArtifact,
     ):
         self.model_trainer_config = model_trainer_config
@@ -50,7 +50,6 @@ class ModelTrainer:
         self.best_model_path = model_trainer_config.best_model_path
         os.makedirs(Path(self.best_model_path).parent, exist_ok=True)
 
-
         # Optimization
         self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.01)
         self.criterion = nn.CrossEntropyLoss()
@@ -61,7 +60,7 @@ class ModelTrainer:
         self.losses = {'train': [], 'test': []}
         self.best_loss = float('inf')
 
-    def create_data_loader(self, X : np.ndarray, y:np.ndarray, shuffle=True) -> DataLoader:
+    def create_data_loader(self, X: np.ndarray, y: np.ndarray, shuffle=True) -> DataLoader:
         """
         This method of ModelTrainer class is responsible for creating data loader
         """
@@ -91,13 +90,13 @@ class ModelTrainer:
         self.model.load_state_dict(torch.load(path))
 
     def forward(self,
-                data_loader : DataLoader,
+                data_loader: DataLoader,
                 is_training: bool = False,
                 name: str = "Eval Loss",
                 verbose: bool = False) -> Tensor:
 
         """
-        This method of ModelTrainer class is responsible for performing forward pass
+        This method of the ModelTrainer class is responsible for performing forward pass
 
         Args:
             data_loader : DataLoader
@@ -105,6 +104,12 @@ class ModelTrainer:
             name : str. Name of the loss.
             verbose : bool. If True, print the loss.
         """
+
+        # Head magnitude
+        action_magnitude = torch.log(self.tokenizer.name_vocab_size["action"])
+        duration_magnitude = torch.log(self.tokenizer.name_vocab_size["duration"])
+        distance_magnitude = torch.log(self.tokenizer.name_vocab_size["distance"])
+
         if is_training:
             self.model.train()
         else:
@@ -116,10 +121,13 @@ class ModelTrainer:
             X = torch.tensor(X).to(self.device)
             y = torch.tensor(y).to(self.device)
 
-
             y1, y2, y3 = self.value_to_vector(y)
             y_hat = self.model(X)
-            loss = self.criterion(y_hat[0], y1) + self.criterion(y_hat[1], y2) + self.criterion(y_hat[2], y3)
+            loss = (
+                    (self.criterion(y_hat[0], y1) / action_magnitude) +
+                    (self.criterion(y_hat[1], y2) / duration_magnitude) +
+                    (self.criterion(y_hat[2], y3) / distance_magnitude)
+            )
 
             if is_training:
                 self.model.zero_grad(set_to_none=True)
@@ -135,10 +143,10 @@ class ModelTrainer:
 
     def train(self,
               train_loader: DataLoader,
-              test_dataloader : DataLoader,
+              test_dataloader: DataLoader,
               epochs=10,
               verbose: bool = True
-        ) -> Dict[str, list]:
+              ) -> Dict[str, list]:
         for epoch in range(epochs):
 
             train_loss = self.forward(train_loader, is_training=True, name="Train Loss", verbose=False)
@@ -163,7 +171,7 @@ class ModelTrainer:
     @staticmethod
     def compute_metrics(y_true: Tensor, y_pred: Tensor, num_classes: int = 1) -> ModelMetrics:
         """
-        This method of ModelTrainer class is responsible for computing the metrics
+        This method of the ModelTrainer class is responsible for computing the metrics
 
         Args:
             y_true: Tensor. True labels
@@ -202,12 +210,12 @@ class ModelTrainer:
 
             # Set the model to evaluation mode
             self.model.eval()
-            y_trues = { # noqa
+            y_trues = {  # noqa
                 "action": torch.empty((0, self.name_vocab_size['action']), device=self.device),
                 "duration": torch.empty((0, self.name_vocab_size['duration']), device=self.device),
                 "distance": torch.empty((0, self.name_vocab_size['distance']), device=self.device)
             }
-            y_preds = { # noqa
+            y_preds = {  # noqa
                 "action": torch.empty((0, self.name_vocab_size['action']), device=self.device),
                 "duration": torch.empty((0, self.name_vocab_size['duration']), device=self.device),
                 "distance": torch.empty((0, self.name_vocab_size['distance']), device=self.device)
@@ -223,11 +231,11 @@ class ModelTrainer:
                 y1_pred, y2_pred, y3_pred = y_pred[0], y_pred[1], y_pred[2]
 
                 # Concatenate the tensors
-                y_trues["action"] = torch.cat((y_trues["action"], y1), dim=0) # noqa
+                y_trues["action"] = torch.cat((y_trues["action"], y1), dim=0)  # noqa
                 y_trues["duration"] = torch.cat((y_trues["duration"], y2), dim=0)
                 y_trues["distance"] = torch.cat((y_trues["distance"], y3), dim=0)
 
-                y_preds["action"] = torch.cat((y_preds["action"], y1_pred), dim=0) # noqa
+                y_preds["action"] = torch.cat((y_preds["action"], y1_pred), dim=0)  # noqa
                 y_preds["duration"] = torch.cat((y_preds["duration"], y2_pred), dim=0)
                 y_preds["distance"] = torch.cat((y_preds["distance"], y3_pred), dim=0)
 
@@ -271,16 +279,16 @@ class ModelTrainer:
 
         return (
                 pn.ggplot(df_plot)
-                + pn.aes(x='epoch', y='loss', color='type') # noqa
+                + pn.aes(x='epoch', y='loss', color='type')  # noqa
                 + pn.geom_line(size=1)
                 + pn.scale_color_brewer(type='qualitative', palette=6,
                                         labels=lambda labs: [f"{x.title()}" for x in labs])
                 + pn.labs(x="Epochs", y="Loss", color="")
                 + pn.theme_538()
                 + pn.theme(
-                    legend_position="top",
-                    figure_size=(12, 6)
-                )
+            legend_position="top",
+            figure_size=(12, 6)
+        )
         )
 
     def generate(self, X, temperature=1.0, do_sample=False, top_k=None) -> np.ndarray:
@@ -320,8 +328,7 @@ class ModelTrainer:
                 y2 = self.tokenizer.convert_index_from_name("duration", y2.cpu().numpy())
                 y3 = self.tokenizer.convert_index_from_name("distance", y3.cpu().numpy())
 
-
-                X[:, idx:(idx+3)] = np.array([y1, y2, y3]).T
+                X[:, idx:(idx + 3)] = np.array([y1, y2, y3]).T
         return X
 
     def initiate_training(self) -> ModelTrainerArtifact:

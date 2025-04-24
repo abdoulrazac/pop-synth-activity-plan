@@ -5,7 +5,6 @@ import numpy as np
 
 from concurrent.futures import ThreadPoolExecutor
 from from_root import from_root
-from skimage.future.graph.setup import base_path
 
 from ap_gpt.ap_exception import APException
 from ap_gpt.ap_logger import logging

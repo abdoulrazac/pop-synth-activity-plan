@@ -1,5 +1,5 @@
 from dataclasses import dataclass
-from typing import Dict, Tuple
+from typing import Dict, Tuple, List
 
 
 @dataclass
@@ -42,6 +42,9 @@ class DataMergingArtifact:
     household_columns_number: int
     person_columns_number: int
     trip_columns_number: int
+    household_columns : List[str]
+    person_columns : List[str]
+    trip_columns : List[str]
 
 @dataclass
 class DataSplittingArtifact:

@@ -138,6 +138,9 @@ class DataMerging:
                 household_columns_number= len([col for col in df_household.columns if col not in [self.household_id_col, self.household_weight_col]]),
                 person_columns_number=len([col for col in df_person.columns if col not in [self.household_id_col, self.person_id_col, self.person_weight_col]]),
                 trip_columns_number=len([col for col in df_trip.columns if col not in [self.person_id_col, self.trip_id_col, self.trip_weight_col]]),
+                household_columns=[col for col in df_household.columns if col not in [self.household_id_col, self.household_weight_col]],
+                person_columns=[col for col in df_person.columns if col not in [self.household_id_col, self.person_id_col, self.person_weight_col]],
+                trip_columns=[col for col in df_trip.columns if col not in [self.person_id_col, self.trip_id_col, self.trip_weight_col]],
             )
 
             # # Save the merged dataframe

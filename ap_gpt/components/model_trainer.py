@@ -82,7 +82,7 @@ class ModelTrainer:
         torch.save(self.model.state_dict(), self.best_model_path)
 
     def load_best_model(self) -> None:
-        self.model.load_state_dict(torch.load(self.best_model_path))
+        self.model.load_state_dict(torch.load(self.best_model_path, map_location=self.device))
 
     def save_model(self, path) -> None:
         torch.save(self.model.state_dict(), path)
@@ -320,11 +320,8 @@ class ModelTrainer:
                 y2 = self.tokenizer.convert_index_from_name("duration", y2.cpu().numpy())
                 y3 = self.tokenizer.convert_index_from_name("distance", y3.cpu().numpy())
 
-                if idx + 3 < self.max_sequence_length:
-                    X[:, idx:(idx+3)] = np.array([y1, y2, y3]).T
-                else:
-                    X = np.concatenate((X, np.array([y1, y2, y3]).T), axis=1)
 
+                X[:, idx:(idx+3)] = np.array([y1, y2, y3]).T
         return X
 
     def initiate_training(self) -> ModelTrainerArtifact:

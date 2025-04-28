@@ -71,6 +71,7 @@ class DataTokenizerArtifact:
     test_encoded_data_file_path: str
     pad_token_idx: Tuple[int, int, int]
     nb_actions: int
+    vocab_size: int
     name_vocab_size: Dict[str, int]
 
 @dataclass

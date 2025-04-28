@@ -398,6 +398,7 @@ class DataTokenizer:
                 pad_token_idx = pad_token_idx,
                 nb_actions= nb_actions,
                 name_vocab_size=self.name_vocab_size,
+                vocab_size=self.vocab_size
             )
 
             logging.info("Save encoded data")

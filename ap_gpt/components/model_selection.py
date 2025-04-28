@@ -71,6 +71,7 @@ class ModelSelection :
                 heads=int(config["heads"]),
                 pad_token_idx=(int(config["pad_token_idx"][0]), int(config["pad_token_idx"][1]), int(config["pad_token_idx"][2])),
                 nb_actions=int(config["nb_actions"]),
+                vocab_size=int(config["vocab_size"]),
                 name_vocab_size=dict(config["name_vocab_size"]),
                 max_sequence_length=int(config["max_sequence_length"]),
                 embed_size=int(config["embed_size"]),

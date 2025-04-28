@@ -1,6 +1,6 @@
 list_temperature : [0.8, 1 , 1.2]
 list_do_sample : [True, False]
-list_top_k : [None, 5, 10]
+list_top_k : [None, 5]
 
 #list_temperature : [1]
 #list_do_sample : [False]

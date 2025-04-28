@@ -33,16 +33,15 @@ from ap_gpt.utils.main_utils import read_yaml_file
 
 
 class TrainPipeline:
-    def __init__(self, training_pipeline_config: TrainingPipelineConfig = TrainingPipelineConfig()) -> None:
+    def __init__(self) -> None:
         """
         This method of TrainPipeline class is responsible for initializing the pipeline
         Args :
             model_name (str) : name of the model to be trained
         """
-        self.model_name = training_pipeline_config.model_name
 
         # Initialize the configuration classes
-        self.training_pipeline_config: TrainingPipelineConfig = training_pipeline_config
+        self.training_pipeline_config: TrainingPipelineConfig = TrainingPipelineConfig()
         self.data_ingestion_config: DataIngestionConfig = DataIngestionConfig()
         self.data_processing_config: DataProcessingConfig = DataProcessingConfig()
         self.data_merging_config: DataMergingConfig = DataMergingConfig()
@@ -51,6 +50,7 @@ class TrainPipeline:
         self.data_to_sequence_config: DataToSequenceConfig = DataToSequenceConfig()
         self.model_selection_config: ModelSelectionConfig = ModelSelectionConfig()
 
+        self.model_name = self.training_pipeline_config.model_name
         self.metric_file_name = os.path.join(self.training_pipeline_config.metric_store_path, self.model_name + ".csv")
 
         self._search_grid_config = read_yaml_file(os.path.join(from_root(), SEARCH_GRID_FILE_PATH))
@@ -278,6 +278,7 @@ class TrainPipeline:
                                 model_name=f"{self.model_name}_{num_layers}_{embed_size}_{forward_expansion}_{dropout}",
                                 pad_token_idx=data_tokenizer_artifact.pad_token_idx,
                                 nb_actions=data_tokenizer_artifact.nb_actions,
+                                vocab_size=data_tokenizer_artifact.vocab_size,
                                 name_vocab_size=data_tokenizer_artifact.name_vocab_size,
                                 max_sequence_length=data_to_sequence_artifact.max_sequence_length,
                                 num_layers=num_layers,
@@ -299,33 +300,6 @@ class TrainPipeline:
             for future in futures:
                 model_trainer_artifact = future.result()
                 self.start_save_metrics(model_trainer_artifact)
-
-        # for num_layers in list_num_layers:
-        #     for embed_size in list_embed_size:
-        #         for forward_expansion in list_forward_expansion:
-        #             for dropout in list_dropout:
-        #                 model_trainer_config =ModelTrainerConfig(
-        #                     heads=2,
-        #                     model_name=f"{self.model_name}_{num_layers}_{embed_size}_{forward_expansion}_{dropout}",
-        #                     pad_token_idx = data_tokenizer_artifact.pad_token_idx,
-        #                     nb_actions = data_tokenizer_artifact.nb_actions,
-        #                     name_vocab_size = data_tokenizer_artifact.name_vocab_size,
-        #                     max_sequence_length = data_to_sequence_artifact.max_sequence_length,
-        #                     num_layers=num_layers,
-        #                     embed_size=embed_size,
-        #                     forward_expansion=forward_expansion,
-        #                     dropout=dropout,
-        #                 )
-        #                 model_trainer = ModelTrainer(
-        #                     model=ActionGPT(config=model_trainer_config),
-        #                     model_trainer_config=model_trainer_config,
-        #                     data_tokenizer_artifact=data_tokenizer_artifact,
-        #                     data_to_sequence_artifact=data_to_sequence_artifact,
-        #                 )
-        #                 model_trainer_artifact = model_trainer.initiate_training()
-        #
-        #                 # Save the model_trainer_artifact
-        #                 self.start_save_metrics(model_trainer_artifact)
 
     def start_model_selection(self,
                               data_merging_artifact: DataMergingArtifact,
@@ -366,28 +340,12 @@ class TrainPipeline:
 
             # ----> A supprimer après test <---- #
 
-            # data_tokenizer_artifact = DataTokenizerArtifact(
-            #     tokenizer_file_path=self.data_tokenizer_config.tokenizer_file_path,
-            #     train_encoded_data_file_path=self.data_tokenizer_config.train_encoded_data_file_path,
-            #     validation_encoded_data_file_path=self.data_tokenizer_config.test_encoded_data_file_path,
-            #     pad_token_idx=(81, 97, 139),
-            #     nb_actions=45,
-            #     name_vocab_size = {'action': 13, 'duration': 45, 'distance': 49}
-            # )
             #
-            # data_to_sequence_artifact = DataToSequenceArtifact(
-            #     train_x_data_as_sequence_file_path=self.data_to_sequence_config.train_x_data_as_sequence_file_path,
-            #     train_y_data_as_sequence_file_path=self.data_to_sequence_config.train_y_data_as_sequence_file_path,
-            #     validation_x_data_as_sequence_file_path=self.data_to_sequence_config.test_x_data_as_sequence_file_path,
-            #     validation_y_data_as_sequence_file_path=self.data_to_sequence_config.test_y_data_as_sequence_file_path,
-            #     max_sequence_length=150,
-            # )
-
-            # base_path = '/Users/abdoul/Desktop/these/Activity-Plan'
-            # base_path = '/Users/doctorant/Desktop/These/pop-synth-activity-plan'
+            # base_path = '/Users/abdoul/Desktop/these/Activity-Plan/artifact/ActionGPT/'
+            # # base_path = '/Users/doctorant/Desktop/These/pop-synth-activity-plan/artifact/ActionGPT/'
             #
             # data_merging_artifact = DataMergingArtifact(
-            #     merged_data_file_path= base_path + '/artifact/ActionGPT/data/merged_data.parquet',
+            #     merged_data_file_path= base_path + '/data/merged_data.parquet',
             #     household_columns_number=6,
             #     person_columns_number=12,
             #     trip_columns_number=135,
@@ -400,22 +358,23 @@ class TrainPipeline:
             # )
             #
             # data_tokenizer_artifact = DataTokenizerArtifact(
-            #     tokenizer_file_path= base_path + '/artifact/ActionGPT/data/tokenizer.txt',
-            #     train_encoded_data_file_path= base_path + '/artifact/ActionGPT/data/train_encoded_data.npy',
-            #     validation_encoded_data_file_path= base_path + '/artifact/ActionGPT/data/validation_encoded_data.npy',
-            #     test_encoded_data_file_path= base_path + '/artifact/ActionGPT/data/test_encoded_data.npy',
+            #     tokenizer_file_path= base_path + '/data/tokenizer.txt',
+            #     train_encoded_data_file_path= base_path + '/data/train_encoded_data.npy',
+            #     validation_encoded_data_file_path= base_path + '/data/validation_encoded_data.npy',
+            #     test_encoded_data_file_path= base_path + '/data/test_encoded_data.npy',
             #     pad_token_idx=(80, 95, 138),
             #     nb_actions=45,
+            #     vocab_size=171,
             #     name_vocab_size={'action': 13, 'duration': 45, 'distance': 49}
             # )
             #
             # data_to_sequence_artifact = DataToSequenceArtifact(
-            #     train_x_data_as_sequence_file_path= base_path + '/artifact/ActionGPT/data/X_train_data_as_sequence.npy',
-            #     train_y_data_as_sequence_file_path= base_path + '/artifact/ActionGPT/data/Y_train_data_as_sequence.npy',
-            #     validation_x_data_as_sequence_file_path= base_path + '/artifact/ActionGPT/data/X_validation_data_as_sequence.npy',
-            #     validation_y_data_as_sequence_file_path= base_path + '/artifact/ActionGPT/data/Y_validation_data_as_sequence.npy',
-            #     test_x_data_as_sequence_file_path= base_path + '/artifact/ActionGPT/data/X_test_data_as_sequence.npy',
-            #     max_sequence_length=153
+            #     train_x_data_as_sequence_file_path= base_path + '/data/X_train_data_as_sequence.npy',
+            #     train_y_data_as_sequence_file_path= base_path + '/data/Y_train_data_as_sequence.npy',
+            #     validation_x_data_as_sequence_file_path= base_path + '/data/X_validation_data_as_sequence.npy',
+            #     validation_y_data_as_sequence_file_path= base_path + '/data/Y_validation_data_as_sequence.npy',
+            #     test_x_data_as_sequence_file_path= base_path + '/data/X_test_data_as_sequence.npy',
+            #     max_sequence_length=152
             # )
 
             # ------------------------------------#

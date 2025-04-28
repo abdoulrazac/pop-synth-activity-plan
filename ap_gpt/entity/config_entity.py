@@ -1,6 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 from typing import Dict, Tuple
+
 from from_root import from_root
 
 from ap_gpt.constants import *
@@ -11,16 +12,10 @@ TIMESTAMP: str = datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
 
 @dataclass
 class TrainingPipelineConfig:
-    model_name: str
-    artifact_dir_name: str = os.path.join(from_root(), ARTIFACT_DIR_NAME) #, TIMESTAMP)
+    model_name: str = MODEL_NAME
+    artifact_dir_name: str = os.path.join(from_root(), ARTIFACT_DIR_NAME, MODEL_NAME)
     timestamp: str = TIMESTAMP
     metric_store_path: str = os.path.join(artifact_dir_name, METRIC_STORE_DIR_NAME)
-
-    def __init__(self, model_name: str = "ActionGPT") -> None:
-        self.model_name = model_name
-        self.artifact_dir_name = os.path.join(from_root(), ARTIFACT_DIR_NAME, model_name)
-        self.metric_store_path = os.path.join(self.artifact_dir_name, METRIC_STORE_DIR_NAME)
-        self.timestamp = TIMESTAMP
 
 
 training_pipeline_config: TrainingPipelineConfig = TrainingPipelineConfig()
@@ -170,11 +165,11 @@ class ModelTrainerConfig :
     max_sequence_length : int
     name_vocab_size : Dict[str, int]
     nb_actions : int
+    vocab_size : int
     embed_size : int = 2
-    dropout : float =0.2
+    dropout : float =0.1
     forward_expansion : int = 4
     num_layers : int = 1
-    vocab_size : int = 256
     epochs : int = 1 # 00
     batch_size : int = 128
     verbose : bool = False
@@ -189,12 +184,13 @@ class ModelTrainerConfig :
                  heads: int,
                  pad_token_idx: Tuple[int, int, int],
                  nb_actions: int,
+                 vocab_size: int,
                  name_vocab_size: Dict[str, int],
                  max_sequence_length: int,
                  embed_size: int = 2,
                  num_layers: int = 1,
                  forward_expansion: int = 4,
-                 dropout: float = 0.2,
+                 dropout: float = 0.1,
                  epochs : int = 1,
                  batch_size: int = 128,
                  verbose: bool = False,
@@ -202,6 +198,7 @@ class ModelTrainerConfig :
         self.heads = heads
         self.pad_token_idx = pad_token_idx
         self.nb_actions = nb_actions
+        self.vocab_size = vocab_size
         self.name_vocab_size = name_vocab_size
         self.max_sequence_length = max_sequence_length
         self.embed_size = embed_size
@@ -224,7 +221,7 @@ class ModelTrainerConfig :
         return (f"ModelConfig(\nembed_size={self.embed_size}, \nheads={self.heads}, \ndropout={self.dropout}, " +
                 f"\nforward_expansion={self.forward_expansion}, \nmax_len={self.max_sequence_length}, " +
                 f"\nnum_layers={self.num_layers}, \nvocab_size={self.vocab_size}, \ndevice={self.device})" +
-                f"\npad_token_idx={self.pad_token_idx}, \naction_start_idx={self.action_start_idx}, \nepochs={self.epochs}" +
+                f"\npad_token_idx={self.pad_token_idx}, \nepochs={self.epochs}" +
                 f"\nbatch_size={self.batch_size}, \nmodel_store_path={self.model_store_path}, " +
                 f"\nmodel_name={self.model_name}, \nnb_actions={self.nb_actions}, " +
                 f"\nname_vocab_size={self.name_vocab_size}, \nverbose={self.verbose})")

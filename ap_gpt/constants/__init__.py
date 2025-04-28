@@ -97,4 +97,4 @@ TEST_ENCODED_DATA_FILE_NAME = "test_encoded_data.npy"
 ACTION_NB_COLS = 3
 
 # MODEL TRAINING ------------------------------------------------------
-
+MODEL_NAME = "ActionGPT3"

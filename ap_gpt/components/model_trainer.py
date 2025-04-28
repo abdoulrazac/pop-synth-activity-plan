@@ -23,6 +23,9 @@ from ap_gpt.utils.main_utils import read_data
 
 
 class ModelTrainer:
+
+    scheduler = None
+
     def __init__(
             self,
             model,
@@ -51,11 +54,12 @@ class ModelTrainer:
         os.makedirs(Path(self.best_model_path).parent, exist_ok=True)
 
         # Optimization
-        self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.01)
+        # self.optimizer = torch.optim.Adam(self.model.parameters(), lr=0.01)
+        self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=3e-4, betas=(0.9, 0.95))
         self.criterion = nn.CrossEntropyLoss()
         self.criterion.to(model_trainer_config.device)
         # self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=40, gamma=0.1)
-        self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=lambda step: 0.85 ** (step // 10))
+        # self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=lambda step: 0.85 ** (step // 10))
 
         self.losses = {'train': [], 'test': []}
         self.best_loss = float('inf')
@@ -106,9 +110,9 @@ class ModelTrainer:
         """
 
         # Head magnitude
-        action_magnitude = torch.log(self.tokenizer.name_vocab_size["action"])
-        duration_magnitude = torch.log(self.tokenizer.name_vocab_size["duration"])
-        distance_magnitude = torch.log(self.tokenizer.name_vocab_size["distance"])
+        action_magnitude = torch.log(torch.tensor(self.tokenizer.name_vocab_size["action"], dtype=torch.float32))
+        duration_magnitude = torch.log(torch.tensor(self.tokenizer.name_vocab_size["duration"], dtype=torch.float32))
+        distance_magnitude = torch.log(torch.tensor(self.tokenizer.name_vocab_size["distance"], dtype=torch.float32))
 
         if is_training:
             self.model.train()
@@ -297,9 +301,9 @@ class ModelTrainer:
             for idx in range(self.action_start_idx, self.max_sequence_length, ACTION_NB_COLS):
                 y1, y2, y3 = self.model(torch.tensor(X).to(self.device))
 
-                y1_probs = torch.softmax(y1, dim=1) / temperature
-                y2_probs = torch.softmax(y2, dim=1) / temperature
-                y3_probs = torch.softmax(y3, dim=1) / temperature
+                y1_probs = y1 / temperature
+                y2_probs = y2 / temperature
+                y3_probs = y3 / temperature
 
                 if top_k is not None:
                     top_y1 = torch.topk(y1_probs, top_k, dim=1)

@@ -4,7 +4,6 @@ import torch.nn as nn
 from ap_gpt.entity.config_entity import ModelTrainerConfig
 
 
-
 class SelfAttention(nn.Module) :
     def __init__(self, config : ModelTrainerConfig) :
         super(SelfAttention, self).__init__()
@@ -18,16 +17,17 @@ class SelfAttention(nn.Module) :
         self.values  = nn.Linear(self.head_dim, self.head_dim, bias=False)
         self.keys    = nn.Linear(self.head_dim, self.head_dim, bias=False)
         self.queries = nn.Linear(self.head_dim, self.head_dim, bias=False)
+
         self.fc_out  = nn.Linear(self.heads*self.head_dim, self.embed_size)
 
-    def forward(self, values, keys, queries, mask) :
-        N = queries.shape[0] # N = Batch Size
-        value_len, key_len, query_len = values.shape[1], keys.shape[1], queries.shape[1]
+    def forward(self, X, mask) :
+        N = X.shape[0] # N = Batch Size
+        value_len, key_len, query_len = X.shape[1], X.shape[1], X.shape[1]
 
         # Split embedding into self.heads pieces
-        values = values.reshape(N, value_len, self.heads, self.head_dim)
-        keys = keys.reshape(N, key_len, self.heads, self.head_dim)
-        queries = queries.reshape(N, query_len, self.heads, self.head_dim)
+        values = X.reshape(N, value_len, self.heads, self.head_dim)
+        keys = X.reshape(N, key_len, self.heads, self.head_dim)
+        queries = X.reshape(N, query_len, self.heads, self.head_dim)
 
         energy = torch.einsum("nqhd,nkhd->nhqk", [queries, keys])
         # queries shape : (N, query_len, heads, head_dim)

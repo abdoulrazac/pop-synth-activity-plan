@@ -1,9 +1,7 @@
 import torch
 import torch.nn as nn
-import numpy as np
 
 from ap_gpt.entity.config_entity import ModelTrainerConfig
-
 from .transformer_block import TransformerBlock
 
 
@@ -22,36 +20,37 @@ class ActionGPT(nn.Module):
         self.position_embedding = nn.Embedding(self.max_sequence_length, embed_size)
         self.layers = nn.ModuleList([TransformerBlock(config) for _ in range(num_layers)])
         self.dropout = nn.Dropout(dropout)
+        self.norm = nn.LayerNorm(embed_size)
 
         ## FC for each output (action, duration, distance)
-        self.fc_action_out = nn.Linear(self.max_sequence_length * embed_size, config.name_vocab_size["action"])
-        self.fc_duration_out = nn.Linear(self.max_sequence_length * embed_size, config.name_vocab_size["duration"])
-        self.fc_distance_out = nn.Linear(self.max_sequence_length * embed_size, config.name_vocab_size["distance"])
+        self.fc_action_out = nn.Linear(self.max_sequence_length * embed_size, config.name_vocab_size["action"], bias=False)
+        self.fc_duration_out = nn.Linear(self.max_sequence_length * embed_size, config.name_vocab_size["duration"], bias=False)
+        self.fc_distance_out = nn.Linear(self.max_sequence_length * embed_size, config.name_vocab_size["distance"], bias=False)
+
 
     def make_mask(self, x):
         pad_token_mask = torch.isin(x, torch.tensor(self.pad_token_idx, device=x.device))
         mask = ~pad_token_mask.unsqueeze(1).unsqueeze(2)
         return mask
 
-    def forward(self, x, training=False):
+    def forward(self, x):
         N, seq_length = x.shape
 
         positions = torch.arange(0, seq_length).expand(N, seq_length).to(self.device)
         mask = self.make_mask(x)
 
         x = self.word_embedding(x) + self.position_embedding(positions)
-
-        if training:
-            x = self.dropout(x)
+        x = self.dropout(x)
 
         for layer in self.layers:
-            x = layer(x, x, x, mask, training)
+            x = layer(x, mask)
 
+        x = self.norm(x)
         x = x.reshape(N, -1)
 
         # FC for each output
-        action_out = self.fc_action_out(x)
-        duration_out = self.fc_duration_out(x)
-        distance_out = self.fc_distance_out(x)
+        action_out = torch.softmax(self.fc_action_out(x), dim=1)
+        duration_out = torch.softmax(self.fc_duration_out(x), dim=1)
+        distance_out = torch.softmax(self.fc_distance_out(x), dim=1)
 
         return action_out, duration_out, distance_out

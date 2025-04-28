@@ -17,22 +17,17 @@ class TransformerBlock(nn.Module):
 
         self.feed_forward = nn.Sequential(
             nn.Linear(embed_size, forward_expansion * embed_size),
-            nn.ReLU(),
-            nn.Linear(forward_expansion * embed_size, embed_size)
+            nn.GELU(),
+            nn.Linear(forward_expansion * embed_size, embed_size),
         )
 
         self.dropout = nn.Dropout(dropout)
 
-    def forward(self, value, key, query, mask, training=False):
-        attention = self.attention(value, key, query, mask)
-        x = self.norm1(attention + query)
+    def forward(self, X, mask):
+        attention = self.attention(X, mask)
+        attention = self.dropout(attention)
+        x = self.norm1(attention + X)
 
-        if training:
-            x = self.dropout(x)
-
-        forward = self.feed_forward(x)
+        forward = self.dropout(self.feed_forward(x))
         out = self.norm2(forward + x)
-
-        if training:
-            out = self.dropout(out)
         return out

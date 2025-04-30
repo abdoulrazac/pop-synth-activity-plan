@@ -1,11 +1,12 @@
 import json
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, Tuple
+from typing import Dict, Tuple, Type
 
 from from_root import from_root
 
 from ap_gpt.constants import *
+from ap_gpt.models.base_model import BaseModel
 from ap_gpt.utils.main_utils import get_device
 
 TIMESTAMP: str = datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
@@ -14,7 +15,7 @@ TIMESTAMP: str = datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
 @dataclass
 class TrainingPipelineConfig:
 
-    def __init__(self, model_name:str = MODEL_NAME) -> None:
+    def __init__(self, model_cls = Type[BaseModel],  model_name:str = MODEL_NAME) -> None:
         self.model_name: str = model_name
         self.timestamp: str = TIMESTAMP
         self.artifact_dir_name: str = os.path.join(from_root(), ARTIFACT_DIR_NAME, self.model_name, self.timestamp)

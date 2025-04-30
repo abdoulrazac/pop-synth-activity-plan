@@ -10,15 +10,16 @@ class SelfAttention(nn.Module) :
         self.embed_size = config.embed_size
         self.heads = config.heads
         self.head_dim = self.embed_size // self.heads
+        self.device = config.device
 
         # check if head_dim is an integer
         assert self.head_dim * self.heads == self.embed_size, "Embed size needs to be divisible by heads"
 
-        self.values  = nn.Linear(self.head_dim, self.head_dim, bias=False)
-        self.keys    = nn.Linear(self.head_dim, self.head_dim, bias=False)
-        self.queries = nn.Linear(self.head_dim, self.head_dim, bias=False)
+        self.values  = nn.Linear(self.head_dim, self.head_dim, bias=False).to(device=self.device)
+        self.keys    = nn.Linear(self.head_dim, self.head_dim, bias=False).to(device=self.device)
+        self.queries = nn.Linear(self.head_dim, self.head_dim, bias=False).to(device=self.device)
 
-        self.fc_out  = nn.Linear(self.heads*self.head_dim, self.embed_size)
+        self.fc_out  = nn.Linear(self.heads*self.head_dim, self.embed_size).to(device=self.device)
 
     def forward(self, X, mask) :
         N = X.shape[0] # N = Batch Size

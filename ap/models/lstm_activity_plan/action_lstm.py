@@ -15,13 +15,13 @@ class ActionLSTM(nn.Module):
         self.name_vocab_size = model_trainer_config.name_vocab_size
         self.device = model_trainer_config.device
 
-        self.embedding = nn.Embedding(vocab_size, embed_size).to(self.device)
-        self.lstm = nn.LSTM(embed_size, hidden_dim, num_layers, batch_first=True, dropout=dropout).to(self.device)
+        self.embedding = nn.Embedding(vocab_size, embed_size)
+        self.lstm = nn.LSTM(embed_size, hidden_dim, num_layers, batch_first=True, dropout=dropout)
 
         # Output heads
-        self.fc_action_out = nn.Linear(hidden_dim, self.name_vocab_size["action"]).to(self.device)
-        self.fc_duration_out = nn.Linear(hidden_dim, self.name_vocab_size["duration"]).to(self.device)
-        self.fc_distance_out = nn.Linear(hidden_dim, self.name_vocab_size["distance"]).to(self.device)
+        self.fc_action_out = nn.Linear(hidden_dim, self.name_vocab_size["action"])
+        self.fc_duration_out = nn.Linear(hidden_dim, self.name_vocab_size["duration"])
+        self.fc_distance_out = nn.Linear(hidden_dim, self.name_vocab_size["distance"])
 
     def forward(self, x):
         # x: [batch_size, seq_len] (token indices)

@@ -18,16 +18,16 @@ class ActionGPT(nn.Module):
         self.max_sequence_length = model_trainer_config.max_sequence_length
         self.device = model_trainer_config.device
 
-        self.word_embedding = nn.Embedding(vocab_size, embed_size).to(device=self.device)
-        self.position_embedding = nn.Embedding(self.max_sequence_length, embed_size).to(device=self.device)
+        self.word_embedding = nn.Embedding(vocab_size, embed_size)
+        self.position_embedding = nn.Embedding(self.max_sequence_length, embed_size)
         self.layers = nn.ModuleList([TransformerBlock(model_trainer_config) for _ in range(num_layers)])
-        self.dropout = nn.Dropout(dropout).to(device=self.device)
-        self.norm = nn.LayerNorm(embed_size).to(device=self.device)
+        self.dropout = nn.Dropout(dropout)
+        self.norm = nn.LayerNorm(embed_size)
 
         ## FC for each output (action, duration, distance)
-        self.fc_action_out = nn.Linear(self.max_sequence_length * embed_size, model_trainer_config.name_vocab_size["action"]).to(device=self.device)
-        self.fc_duration_out = nn.Linear(self.max_sequence_length * embed_size, model_trainer_config.name_vocab_size["duration"]).to(device=self.device)
-        self.fc_distance_out = nn.Linear(self.max_sequence_length * embed_size, model_trainer_config.name_vocab_size["distance"]).to(device=self.device)
+        self.fc_action_out = nn.Linear(self.max_sequence_length * embed_size, model_trainer_config.name_vocab_size["action"])
+        self.fc_duration_out = nn.Linear(self.max_sequence_length * embed_size, model_trainer_config.name_vocab_size["duration"])
+        self.fc_distance_out = nn.Linear(self.max_sequence_length * embed_size, model_trainer_config.name_vocab_size["distance"])
 
     def make_mask(self, x):
         pad_token_idx = torch.tensor(self.pad_token_idx, device=x.device)

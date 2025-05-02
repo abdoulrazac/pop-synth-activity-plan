@@ -87,7 +87,7 @@ class ModelSelection :
                     verbose=bool(config["verbose"]),
                 )
                 self.model_trainer = ModelTrainer(
-                    model=ActionGPT(model_trainer_config=self.model_config),
+                    model=ActionGPT(model_trainer_config=self.model_config).to(self.model_config.device),
                     model_trainer_config=self.model_config,
                     data_tokenizer_artifact=self.data_tokenizer_artifact,
                     data_to_sequence_artifact=self.data_to_sequence_artifact,
@@ -110,7 +110,7 @@ class ModelSelection :
                     verbose=bool(config["verbose"]),
                 )
                 self.model_trainer = ModelTrainer(
-                    model=ActionLSTM(model_trainer_config=self.model_config),
+                    model=ActionLSTM(model_trainer_config=self.model_config).to(self.model_config.device),
                     model_trainer_config=self.model_config,
                     data_tokenizer_artifact=self.data_tokenizer_artifact,
                     data_to_sequence_artifact=self.data_to_sequence_artifact,

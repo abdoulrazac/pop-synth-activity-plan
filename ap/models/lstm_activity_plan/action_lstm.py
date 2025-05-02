@@ -1,0 +1,34 @@
+import torch.nn as nn
+
+from ap.entity.config_entity import ModelTrainerConfig
+
+
+class ActionLSTM(nn.Module):
+    def __init__(self, model_trainer_config: ModelTrainerConfig) :
+        super(ActionLSTM, self).__init__()
+
+        vocab_size, embed_size, dropout, hidden_dim, num_layers = (
+            model_trainer_config.vocab_size, model_trainer_config.embed_size, model_trainer_config.dropout,
+            model_trainer_config.hidden_dim, model_trainer_config.num_layers
+        )
+
+        self.name_vocab_size = model_trainer_config.name_vocab_size
+        self.device = model_trainer_config.device
+
+        self.embedding = nn.Embedding(vocab_size, embed_size).to(self.device)
+        self.lstm = nn.LSTM(embed_size, hidden_dim, num_layers, batch_first=True, dropout=dropout).to(self.device)
+
+        # Output heads
+        self.fc_action_out = nn.Linear(hidden_dim, self.name_vocab_size["action"]).to(self.device)
+        self.fc_duration_out = nn.Linear(hidden_dim, self.name_vocab_size["duration"]).to(self.device)
+        self.fc_distance_out = nn.Linear(hidden_dim, self.name_vocab_size["distance"]).to(self.device)
+
+    def forward(self, x):
+        # x: [batch_size, seq_len] (token indices)
+        x = self.embedding(x)  # -> [batch_size, seq_len, embed_dim]
+        out, _ = self.lstm(x)
+        last_time_step = out[:, -1, :]  # Use last LSTM output
+        y1 = self.fc_action_out(last_time_step)
+        y2 = self.fc_duration_out(last_time_step)
+        y3 = self.fc_distance_out(last_time_step)
+        return y1, y2, y3

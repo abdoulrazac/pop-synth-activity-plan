@@ -99,66 +99,95 @@ class ModelTrainer:
                 is_training: bool = False,
                 name: str = "Eval Loss",
                 verbose: bool = False) -> Tensor:
-
         """
-        This method of the ModelTrainer class is responsible for performing forward pass
+        Performs a forward pass through the model over the data provided by data_loader.
 
         Args:
-            data_loader : DataLoader
-            is_training : bool. If True, perform training. If False, perform evaluation.
-            name : str. Name of the loss.
-            verbose : bool. If True, print the loss.
+            data_loader (DataLoader): The data loader providing input-output batches.
+            is_training (bool): If True, runs training mode; otherwise, evaluation mode.
+            name (str): Label used for logging the loss.
+            verbose (bool): If True, prints the average loss.
+
+        Returns:
+            Tensor: The average loss over all batches.
         """
 
-        if is_training:
-            self.model.train()
-        else:
-            self.model.eval()
+        self.model.train() if is_training else self.model.eval()
+        total_loss = 0.0
+        num_batches = 0
 
-        losses = []
-        for X, y in data_loader:
+        context = torch.enable_grad if is_training else torch.no_grad
+        with context():
+            for X, y in data_loader:
+                X, y = torch.tensor(X, device=self.device), torch.tensor(y, device=self.device)
 
-            X = torch.tensor(X).to(self.device)
-            y = torch.tensor(y).to(self.device)
+                y1, y2, y3 = self.value_to_vector(y)
+                y_hat = self.model(X)
 
-            y1, y2, y3 = self.value_to_vector(y)
-            y_hat = self.model(X)
-            loss = self.criterion(y_hat[0], y1) + self.criterion(y_hat[1], y2) + self.criterion(y_hat[2], y3)
+                loss = (
+                        self.criterion(y_hat[0], y1) +
+                        self.criterion(y_hat[1], y2) +
+                        self.criterion(y_hat[2], y3)
+                )
 
-            if is_training:
-                self.model.zero_grad(set_to_none=True)
-                loss.backward()
-                self.optimizer.step()
+                if is_training:
+                    self.optimizer.zero_grad()
+                    loss.backward()
+                    self.optimizer.step()
 
-            losses.append(loss.item())
+                total_loss += loss.item()
+                num_batches += 1
 
-        loss = torch.mean(torch.tensor(losses))
+        avg_loss = total_loss / num_batches if num_batches > 0 else 0.0
+
         if verbose:
-            print(f"{name} : {torch.mean(loss)}")
-        return torch.mean(loss)
+            print(f"{name} : {avg_loss:.4f}")
+
+        return torch.tensor(avg_loss, device=self.device)
 
     def train(self,
               train_loader: DataLoader,
               test_dataloader: DataLoader,
-              epochs=10,
+              epochs: int = 10,
               verbose: bool = True
               ) -> Dict[str, list]:
-        for epoch in range(epochs):
+        """
+        Trains the model for a given number of epochs and tracks training and validation losses.
 
+        Args:
+            train_loader (DataLoader): Dataloader for training data.
+            test_dataloader (DataLoader): Dataloader for validation/testing data.
+            epochs (int): Number of training epochs.
+            verbose (bool): If True, prints progress every 10 epochs.
+
+        Returns:
+            Dict[str, list]: Dictionary containing lists of training and test losses.
+        """
+
+        for epoch in range(epochs):
             train_loss = self.forward(train_loader, is_training=True, name="Train Loss", verbose=False)
             test_loss = self.forward(test_dataloader, is_training=False, name="Test Loss", verbose=False)
 
-            self.losses['train'].append(train_loss)
-            self.losses['test'].append(test_loss)
+            # Store float values instead of tensors for easier processing/logging later
+            self.losses['train'].append(float(train_loss))
+            self.losses['test'].append(float(test_loss))
 
+            # Save best model
             if test_loss < self.best_loss:
                 self.best_loss = test_loss
                 self.save_best_model()
-            if verbose and epoch % 10 == 0:
+
+            # Logging
+            if verbose and (epoch % 10 == 0 or epoch == epochs - 1):
                 print(
-                    f"Epoch : {epoch + 1}/{epochs} ; LR : {self.optimizer.param_groups[0]['lr']} ; " +
-                    f"Train Loss : {train_loss} ; Test Loss : {test_loss} ; Best Loss : {self.best_loss}"
+                    f"Epoch {epoch + 1}/{epochs} | "
+                    f"LR: {self.optimizer.param_groups[0]['lr']:.6f} | "
+                    f"Train Loss: {float(train_loss):.4f} | "
+                    f"Test Loss: {float(test_loss):.4f} | "
+                    f"Best Loss: {float(self.best_loss):.4f}"
                 )
+
+            # Learning rate scheduling
             if self.scheduler is not None:
                 self.scheduler.step()
 
@@ -166,37 +195,47 @@ class ModelTrainer:
 
     def compute_metrics(self, y_true: Tensor, y_pred: Tensor, num_classes: int = 1) -> ModelMetrics:
         """
-        This method of the ModelTrainer class is responsible for computing the metrics
+        Computes classification metrics (accuracy, precision, recall, F1) for the given predictions.
 
         Args:
-            y_true: Tensor. True labels
-            y_pred: Tensor. Predicted labels
-            num_classes: int. Number of classes. Default is 1.
+            y_true (Tensor): Ground truth labels.
+            y_pred (Tensor): Predicted labels.
+            num_classes (int): Number of classes for classification (default is 1).
+
+        Returns:
+            ModelMetrics: Object containing accuracy, precision, recall, and F1 score.
         """
         try:
-            accuracy = Accuracy(task="multiclass", num_classes=num_classes, average='macro').to(self.device)
-            precision = Precision(task="multiclass", num_classes=num_classes, average='macro').to(self.device)
-            recall = Recall(task="multiclass", num_classes=num_classes, average='macro').to(self.device)
-            f1 = F1Score(task="multiclass", num_classes=num_classes, average='macro').to(self.device)
-
-            # Assure that all Y are in to device
+            # Ensure tensors are on the correct device
             y_true = y_true.to(self.device)
             y_pred = y_pred.to(self.device)
 
-            # Compute metric
-            accuracy_score = accuracy(y_true, y_pred)
-            precision_score = precision(y_true, y_pred)
-            recall_score = recall(y_true, y_pred)
-            f1_score = f1(y_true, y_pred)
+            # Shape validation
+            if y_true.shape != y_pred.shape:
+                raise ValueError(f"Shape mismatch: y_true={y_true.shape}, y_pred={y_pred.shape}")
 
+            # Initialize metrics
+            metrics_kwargs = {
+                "task": "multiclass",
+                "num_classes": num_classes,
+                "average": "macro"
+            }
+
+            accuracy = Accuracy(**metrics_kwargs).to(self.device)
+            precision = Precision(**metrics_kwargs).to(self.device)
+            recall = Recall(**metrics_kwargs).to(self.device)
+            f1 = F1Score(**metrics_kwargs).to(self.device)
+
+            # Compute metrics
             return ModelMetrics(
-                accuracy=accuracy_score.item(),
-                precision=precision_score.item(),
-                recall=recall_score.item(),
-                f1_score=f1_score.item()
+                accuracy=accuracy(y_true, y_pred).item(),
+                precision=precision(y_true, y_pred).item(),
+                recall=recall(y_true, y_pred).item(),
+                f1_score=f1(y_true, y_pred).item()
             )
+
         except Exception as e:
-            raise APException(e, sys)
+            raise APException(f"Failed to compute metrics: {str(e)}", sys) from e
 
     def evaluate(self, test_loader: DataLoader) -> MetricArtifact:
         """
@@ -291,8 +330,11 @@ class ModelTrainer:
         )
         )
 
-    def generate_one_row(self, X, temperature: int = 1.0, do_sample: bool = False, top_k: int = None) -> Tuple[
-        np.ndarray, np.ndarray]:
+    def generate_one_row(self, X,
+                         temperature: int = 1.0,
+                         do_sample: bool = False,
+                         top_k: int = None
+                         ) -> Tuple[np.ndarray, np.ndarray]:
 
         # Assure that X's shape is (1, N)
         activity_list = list()

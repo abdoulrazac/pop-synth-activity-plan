@@ -1,9 +1,8 @@
-import sys
 import os
+import sys
+from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
-
-from concurrent.futures import ThreadPoolExecutor
 from from_root import from_root
 
 from ap.ap_exception import APException
@@ -290,7 +289,7 @@ class TrainPipeline:
                             training_pipeline_config=self.training_pipeline_config
                         )
                         model_trainer = ModelTrainer(
-                            model=ActionGPT(model_trainer_config=model_trainer_config),
+                            model=ActionGPT(model_trainer_config=model_trainer_config).to(model_trainer_config.device),
                             model_trainer_config=model_trainer_config,
                             data_tokenizer_artifact=data_tokenizer_artifact,
                             data_to_sequence_artifact=data_to_sequence_artifact,
@@ -335,7 +334,7 @@ class TrainPipeline:
                         training_pipeline_config=self.training_pipeline_config
                     )
                     model_trainer = ModelTrainer(
-                        model=ActionLSTM(model_trainer_config=model_trainer_config),
+                        model=ActionLSTM(model_trainer_config=model_trainer_config).to(model_trainer_config.device),
                         model_trainer_config=model_trainer_config,
                         data_tokenizer_artifact=data_tokenizer_artifact,
                         data_to_sequence_artifact=data_to_sequence_artifact,

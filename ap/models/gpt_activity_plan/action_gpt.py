@@ -31,8 +31,7 @@ class ActionGPT(nn.Module):
 
     def make_mask(self, x):
         pad_token_idx = torch.tensor(self.pad_token_idx, device=x.device)
-        pad_token_mask = torch.isin(x, pad_token_idx)
-        mask = ~pad_token_mask.unsqueeze(1).unsqueeze(2)
+        mask = (~torch.isin(x, pad_token_idx)).unsqueeze(1).unsqueeze(2)
         return mask
 
     def forward(self, x):
@@ -42,7 +41,6 @@ class ActionGPT(nn.Module):
         positions = torch.arange(0, seq_length).expand(N, seq_length).to(x.device)
 
         # Assurer que pad_token_idx est sur le bon dispositif
-        pad_token_idx = torch.tensor(self.pad_token_idx, device=x.device)
         mask = self.make_mask(x)
 
         x = self.word_embedding(x) + self.position_embedding(positions)

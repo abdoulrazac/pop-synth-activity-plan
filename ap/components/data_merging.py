@@ -3,16 +3,16 @@ import os
 import pandas as pd
 from from_root import from_root
 
-from ap_gpt.constants import SCHEMA_FILE_PATH, TABLE_PERSON_NAME, SCHEMA_IDENTIFIER_NAME, TABLE_HOUSEHOLD_NAME, \
+from ap.constants import SCHEMA_FILE_PATH, TABLE_PERSON_NAME, SCHEMA_IDENTIFIER_NAME, TABLE_HOUSEHOLD_NAME, \
     TABLE_TRIP_NAME, SCHEMA_WEIGHT_NAME
-from ap_gpt.entity.artifact_entity import (HouseholdDataProcessingArtifact, PersonDataProcessingArtifact,
-                                           TripDataProcessingArtifact, DataMergingArtifact, DataProcessingArtifact)
-from ap_gpt.entity.config_entity import DataMergingConfig
-from ap_gpt.ap_exception import APException
-from ap_gpt.utils.main_utils import read_data, read_yaml_file, save_data
-from ap_gpt.ap_logger import logging
+from ap.entity.artifact_entity import (HouseholdDataProcessingArtifact, PersonDataProcessingArtifact,
+                                       TripDataProcessingArtifact, DataMergingArtifact, DataProcessingArtifact)
+from ap.entity.config_entity import DataMergingConfig
+from ap.ap_exception import APException
+from ap.utils.main_utils import read_data, read_yaml_file, save_data
+from ap.ap_logger import logging
 
-from ap_gpt.utils  import value_prefixer
+from ap.utils  import value_prefixer
 
 
 class DataMerging:

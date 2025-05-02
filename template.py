@@ -9,7 +9,7 @@ from pathlib import Path
 from typing import List, Tuple
 
 # Project name
-project_name = "ap_gpt" # Activity Plan GPT
+project_name = "ap" # Activity Plan GPT
 
 
 # List of tuples containing file paths and a boolean indicating if the path is a directory
@@ -73,6 +73,11 @@ ap_files : List[Tuple[str, bool]] = [
     ('models/gpt_activity_plan/action_gpt.py', False),
     ('models/gpt_activity_plan/self_attention.py', False),
     ('models/gpt_activity_plan/transformer_block.py', False),
+
+    # Model LSTM
+    ('models/lstm_activity_plan', True),
+    ('models/lstm_activity_plan/__init__.py', False),
+    ('models/lstm_activity_plan/action_lstm.py', False),
 
     # Logging directories
     ('ap_logger', True),

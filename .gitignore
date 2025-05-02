@@ -10,8 +10,8 @@ artifact**
 .env.*
 
 # Package files
-ap_gpt.egg-info
+ap.egg-info
 
 # Log files
 logs
-ap_gpt/logs
+ap/logs

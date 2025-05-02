@@ -5,11 +5,11 @@ from typing import Tuple
 
 import pandas as pd
 
-from ap_gpt.ap_exception import APException
-from ap_gpt.entity.artifact_entity import DataIngestionArtifact
-from ap_gpt.entity.config_entity import DataIngestionConfig
-from ap_gpt.ap_logger import logging
-from ap_gpt.utils.main_utils import read_data, save_data
+from ap.ap_exception import APException
+from ap.entity.artifact_entity import DataIngestionArtifact
+from ap.entity.config_entity import DataIngestionConfig
+from ap.ap_logger import logging
+from ap.utils.main_utils import read_data, save_data
 
 
 class DataIngestion :

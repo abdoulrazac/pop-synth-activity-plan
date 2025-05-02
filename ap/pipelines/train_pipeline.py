@@ -6,34 +6,35 @@ import numpy as np
 from concurrent.futures import ThreadPoolExecutor
 from from_root import from_root
 
-from ap_gpt.ap_exception import APException
-from ap_gpt.ap_logger import logging
-from ap_gpt.components.data_ingestion import DataIngestion
-from ap_gpt.components.data_merging import DataMerging
-from ap_gpt.components.data_splitting import DataSplitting
-from ap_gpt.components.data_to_sequence import DataToSequence
-from ap_gpt.components.data_tokenizer import DataTokenizer
-from ap_gpt.components.household_data_processing import HouseholdDataProcessing
-from ap_gpt.components.model_selection import ModelSelection
-from ap_gpt.components.model_trainer import ModelTrainer
-from ap_gpt.components.person_data_processing import PersonDataProcessing
-from ap_gpt.components.trip_data_processing import TripDataProcessing
-from ap_gpt.constants import SEARCH_GRID_FILE_PATH
-from ap_gpt.entity.artifact_entity import (
+from ap.ap_exception import APException
+from ap.ap_logger import logging
+from ap.components.data_ingestion import DataIngestion
+from ap.components.data_merging import DataMerging
+from ap.components.data_splitting import DataSplitting
+from ap.components.data_to_sequence import DataToSequence
+from ap.components.data_tokenizer import DataTokenizer
+from ap.components.household_data_processing import HouseholdDataProcessing
+from ap.components.model_selection import ModelSelection
+from ap.components.model_trainer import ModelTrainer
+from ap.components.person_data_processing import PersonDataProcessing
+from ap.components.trip_data_processing import TripDataProcessing
+from ap.constants import SEARCH_GRID_FILE_PATH, ModelName
+from ap.entity.artifact_entity import (
     DataIngestionArtifact, DataProcessingArtifact, DataMergingArtifact,
     DataSplittingArtifact, DataTokenizerArtifact, DataToSequenceArtifact, ModelTrainerArtifact, ModelSelectionArtifact
 )
-from ap_gpt.entity.config_entity import (
+from ap.entity.config_entity import (
     DataIngestionConfig, DataProcessingConfig, DataMergingConfig,
     DataSplittingConfig, DataTokenizerConfig, DataToSequenceConfig, ModelTrainerConfig, TrainingPipelineConfig,
     ModelSelectionConfig
 )
-from ap_gpt.models.gpt_activity_plan.action_gpt import ActionGPT
-from ap_gpt.utils.main_utils import read_yaml_file
+from ap.models.gpt_activity_plan.action_gpt import ActionGPT
+from ap.models.lstm_activity_plan.action_lstm import ActionLSTM
+from ap.utils.main_utils import read_yaml_file
 
 
 class TrainPipeline:
-    def __init__(self) -> None:
+    def __init__(self, training_pipeline_config: TrainingPipelineConfig = TrainingPipelineConfig()) -> None:
         """
         This method of TrainPipeline class is responsible for initializing the pipeline
         Args :
@@ -41,14 +42,14 @@ class TrainPipeline:
         """
 
         # Initialize the configuration classes
-        self.training_pipeline_config: TrainingPipelineConfig = TrainingPipelineConfig()
-        self.data_ingestion_config: DataIngestionConfig = DataIngestionConfig()
-        self.data_processing_config: DataProcessingConfig = DataProcessingConfig()
-        self.data_merging_config: DataMergingConfig = DataMergingConfig()
-        self.data_splitting_config: DataSplittingConfig = DataSplittingConfig()
-        self.data_tokenizer_config: DataTokenizerConfig = DataTokenizerConfig()
-        self.data_to_sequence_config: DataToSequenceConfig = DataToSequenceConfig()
-        self.model_selection_config: ModelSelectionConfig = ModelSelectionConfig()
+        self.training_pipeline_config = training_pipeline_config
+        self.data_ingestion_config: DataIngestionConfig = DataIngestionConfig(training_pipeline_config=training_pipeline_config)
+        self.data_processing_config: DataProcessingConfig = DataProcessingConfig(training_pipeline_config=training_pipeline_config)
+        self.data_merging_config: DataMergingConfig = DataMergingConfig(training_pipeline_config=training_pipeline_config)
+        self.data_splitting_config: DataSplittingConfig = DataSplittingConfig(training_pipeline_config=training_pipeline_config)
+        self.data_tokenizer_config: DataTokenizerConfig = DataTokenizerConfig(training_pipeline_config=training_pipeline_config)
+        self.data_to_sequence_config: DataToSequenceConfig = DataToSequenceConfig(training_pipeline_config=training_pipeline_config)
+        self.model_selection_config: ModelSelectionConfig = ModelSelectionConfig(training_pipeline_config=training_pipeline_config)
 
         self.model_name = self.training_pipeline_config.model_name
         self.metric_file_name = os.path.join(self.training_pipeline_config.metric_store_path, self.model_name + ".csv")
@@ -183,6 +184,7 @@ class TrainPipeline:
             data_to_sequence = DataToSequence(
                 data_merging_artifact=data_merging_artifact,
                 data_tokenizer_artifact=data_tokenizer_artifact,
+                training_pipeline_config=self.training_pipeline_config,
                 data_to_sequence_config=self.data_to_sequence_config
             )
             data_to_sequence_artifact = data_to_sequence.initiate_data_to_sequence()
@@ -203,7 +205,6 @@ class TrainPipeline:
 
             # File name
 
-
             # Compute mean
             f1_score_mean = np.mean([
                 model_trainer_artifact.metric_artifact.action_metrics.f1_score,
@@ -215,7 +216,7 @@ class TrainPipeline:
             if not os.path.isfile(self.metric_file_name):
                 with open(self.metric_file_name, 'w') as f:
                     f.write(
-                        "model_path;config;test_loss;" +
+                        "model_name;model_path;config;test_loss;" +
                         "action_accuracy;action_precision;action_recall;action_f1_score;" +
                         "duration_accuracy;duration_precision;duration_recall;duration_f1_score;" +
                         "distance_accuracy;distance_precision;distance_recall;distance_f1_score;f1_score_mean\n"
@@ -224,6 +225,7 @@ class TrainPipeline:
             # Write the metrics to the file
             with open(self.metric_file_name, 'a') as f:
                 f.write(
+                    f"{self.model_name};" +
                     f"{model_trainer_artifact.trained_model_file_path};{model_trainer_artifact.model_trainer_config};" +
                     f"{model_trainer_artifact.metric_artifact.best_model_validation_loss};" +
 
@@ -248,6 +250,101 @@ class TrainPipeline:
         except Exception as e:
             raise APException(e, sys)
 
+    def run_grid_search_gpt(self,
+                            data_merging_artifact: DataMergingArtifact,
+                            data_tokenizer_artifact: DataTokenizerArtifact,
+                            data_to_sequence_artifact: DataToSequenceArtifact,
+                            ) -> None:
+        """
+        This method of TrainPipeline class is responsible for starting grid search for GPT model
+        """
+
+        logging.info("Entered the start_grid_search_training method of TrainPipeline class for GPT model")
+
+        list_num_layers = self._search_grid_config["gpt"]["list_num_layers"]
+        list_embed_size = self._search_grid_config["gpt"]["list_embed_size"]
+        list_forward_expansion = self._search_grid_config["gpt"]["list_forward_expansion"]
+        list_dropout = self._search_grid_config["gpt"]["list_dropout"]
+        epochs = self._search_grid_config["gpt"]["nb_epochs"]
+        heads = self._search_grid_config["gpt"]["heads"]
+        batch_size = self._search_grid_config["gpt"]["batch_size"]
+
+        for num_layers in list_num_layers:
+            for embed_size in list_embed_size:
+                for forward_expansion in list_forward_expansion:
+                    for dropout in list_dropout:
+                        model_trainer_config = ModelTrainerConfig(
+                            heads=heads,
+                            model_name=f"{self.model_name}_{num_layers}_{embed_size}_{forward_expansion}_{dropout}",
+                            pad_token_idx=data_tokenizer_artifact.pad_token_idx,
+                            nb_actions=data_tokenizer_artifact.nb_actions,
+                            vocab_size=data_tokenizer_artifact.vocab_size,
+                            name_vocab_size=data_tokenizer_artifact.name_vocab_size,
+                            max_sequence_length=data_to_sequence_artifact.max_sequence_length,
+                            num_layers=num_layers,
+                            embed_size=embed_size,
+                            forward_expansion=forward_expansion,
+                            dropout=dropout,
+                            epochs=epochs,
+                            batch_size=batch_size,
+                            training_pipeline_config=self.training_pipeline_config
+                        )
+                        model_trainer = ModelTrainer(
+                            model=ActionGPT(model_trainer_config=model_trainer_config),
+                            model_trainer_config=model_trainer_config,
+                            data_tokenizer_artifact=data_tokenizer_artifact,
+                            data_to_sequence_artifact=data_to_sequence_artifact,
+                            data_merging_artifact=data_merging_artifact,
+                        )
+
+                        model_trainer_artifact = model_trainer.initiate_training()
+                        self.start_save_metrics(model_trainer_artifact)
+
+    def run_grid_search_lstm(self,
+                            data_merging_artifact: DataMergingArtifact,
+                            data_tokenizer_artifact: DataTokenizerArtifact,
+                            data_to_sequence_artifact: DataToSequenceArtifact,
+                            ) -> None:
+        """
+        This method of TrainPipeline class is responsible for starting grid search for LSTM model
+        """
+
+        logging.info("Entered the start_grid_search_training method of TrainPipeline class for LSTM model")
+
+        list_num_layers = self._search_grid_config["lstm"]["list_num_layers"]
+        list_dropout = self._search_grid_config["lstm"]["list_dropout"]
+        epochs = self._search_grid_config["lstm"]["nb_epochs"]
+        list_hidden_dim = self._search_grid_config["lstm"]["list_hidden_dim"]
+        batch_size = self._search_grid_config["lstm"]["batch_size"]
+
+        for num_layers in list_num_layers:
+            for hidden_dim in list_hidden_dim:
+                for dropout in list_dropout:
+                    model_trainer_config = ModelTrainerConfig(
+                        hidden_dim=hidden_dim,
+                        model_name=f"{self.model_name}_{num_layers}_{hidden_dim}_{dropout}",
+                        pad_token_idx=data_tokenizer_artifact.pad_token_idx,
+                        nb_actions=data_tokenizer_artifact.nb_actions,
+                        vocab_size=data_tokenizer_artifact.vocab_size,
+                        name_vocab_size=data_tokenizer_artifact.name_vocab_size,
+                        max_sequence_length=data_to_sequence_artifact.max_sequence_length,
+                        num_layers=num_layers,
+                        dropout=dropout,
+                        epochs=epochs,
+                        batch_size=batch_size,
+                        training_pipeline_config=self.training_pipeline_config
+                    )
+                    model_trainer = ModelTrainer(
+                        model=ActionLSTM(model_trainer_config=model_trainer_config),
+                        model_trainer_config=model_trainer_config,
+                        data_tokenizer_artifact=data_tokenizer_artifact,
+                        data_to_sequence_artifact=data_to_sequence_artifact,
+                        data_merging_artifact=data_merging_artifact,
+                    )
+
+                    model_trainer_artifact = model_trainer.initiate_training()
+                    self.start_save_metrics(model_trainer_artifact)
+
     def start_grid_search_training(self,
                                    data_merging_artifact: DataMergingArtifact,
                                    data_tokenizer_artifact: DataTokenizerArtifact,
@@ -259,47 +356,13 @@ class TrainPipeline:
 
         logging.info("Entered the start_grid_search_training method of TrainPipeline class")
 
-        list_num_layers = self._search_grid_config["list_num_layers"]
-        list_embed_size = self._search_grid_config["list_embed_size"]
-        list_forward_expansion = self._search_grid_config["list_forward_expansion"]
-        list_dropout = self._search_grid_config["list_dropout"]
-        epochs = self._search_grid_config["nb_epochs"]
-        heads = self._search_grid_config["heads"]
-        batch_size = self._search_grid_config["batch_size"]
+        if self.model_name == ModelName.GPT.value:
+            self.run_grid_search_gpt(data_merging_artifact, data_tokenizer_artifact, data_to_sequence_artifact)
+        elif self.model_name == ModelName.LSTM.value:
+            self.run_grid_search_lstm(data_merging_artifact, data_tokenizer_artifact, data_to_sequence_artifact)
+        else:
+            raise APException("Invalid model name", sys)
 
-        with ThreadPoolExecutor() as executor:
-            futures = []
-            for num_layers in list_num_layers:
-                for embed_size in list_embed_size:
-                    for forward_expansion in list_forward_expansion:
-                        for dropout in list_dropout:
-                            model_trainer_config = ModelTrainerConfig(
-                                heads=heads,
-                                model_name=f"{self.model_name}_{num_layers}_{embed_size}_{forward_expansion}_{dropout}",
-                                pad_token_idx=data_tokenizer_artifact.pad_token_idx,
-                                nb_actions=data_tokenizer_artifact.nb_actions,
-                                vocab_size=data_tokenizer_artifact.vocab_size,
-                                name_vocab_size=data_tokenizer_artifact.name_vocab_size,
-                                max_sequence_length=data_to_sequence_artifact.max_sequence_length,
-                                num_layers=num_layers,
-                                embed_size=embed_size,
-                                forward_expansion=forward_expansion,
-                                dropout=dropout,
-                                epochs=epochs,
-                                batch_size=batch_size,
-                            )
-                            model_trainer = ModelTrainer(
-                                model=ActionGPT(config=model_trainer_config),
-                                model_trainer_config=model_trainer_config,
-                                data_tokenizer_artifact=data_tokenizer_artifact,
-                                data_to_sequence_artifact=data_to_sequence_artifact,
-                                data_merging_artifact=data_merging_artifact,
-                            )
-                            futures.append(executor.submit(model_trainer.initiate_training))
-
-            for future in futures:
-                model_trainer_artifact = future.result()
-                self.start_save_metrics(model_trainer_artifact)
 
     def start_model_selection(self,
                               data_merging_artifact: DataMergingArtifact,
@@ -314,10 +377,10 @@ class TrainPipeline:
             # Implement model selection logic here
 
             model_selection = ModelSelection(
-                metric_file_path =  self.metric_file_name,
-                data_merging_artifact = data_merging_artifact,
-                data_tokenizer_artifact = data_tokenizer_artifact,
-                data_to_sequence_artifact = data_to_sequence_artifact,
+                metric_file_path=self.metric_file_name,
+                data_merging_artifact=data_merging_artifact,
+                data_tokenizer_artifact=data_tokenizer_artifact,
+                data_to_sequence_artifact=data_to_sequence_artifact,
                 model_selection_config=self.model_selection_config,
             )
 
@@ -416,8 +479,6 @@ class TrainPipeline:
                 data_to_sequence_artifact=data_to_sequence_artifact,
             )
             logging.info("Search grid training completed successfully")
-
-
 
             logging.info("===> Executing model selection and data generating <===")
             model_selection_artifact = self.start_model_selection(

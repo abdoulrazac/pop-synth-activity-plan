@@ -6,9 +6,9 @@ from typing import Optional, List, Union
 
 import pandas as pd
 
-from ap_gpt.ap_exception import APException
-from ap_gpt.constants import *
-from ap_gpt.utils.main_utils import read_yaml_file
+from ap.ap_exception import APException
+from ap.constants import *
+from ap.utils.main_utils import read_yaml_file
 
 
 class DataProcessingBase(ABC):

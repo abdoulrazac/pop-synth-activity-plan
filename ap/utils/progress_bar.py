@@ -1,6 +1,6 @@
 from tqdm import tqdm
 
-from ap_gpt.ap_logger import logging
+from ap.ap_logger import logging
 
 class ProgressBarLogger:
     def __init__(self, total=None, desc=None, leave=True):

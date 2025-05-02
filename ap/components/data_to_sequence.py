@@ -4,20 +4,21 @@ from typing import Union, List, Tuple
 import pandas as pd
 from from_root import from_root
 
-from ap_gpt.ap_exception import APException
-from ap_gpt.ap_logger import logging
-from ap_gpt.components.data_tokenizer import DataTokenizer
-from ap_gpt.constants import *
-from ap_gpt.entity.artifact_entity import DataTokenizerArtifact, DataToSequenceArtifact, \
+from ap.ap_exception import APException
+from ap.ap_logger import logging
+from ap.components.data_tokenizer import DataTokenizer
+from ap.constants import *
+from ap.entity.artifact_entity import DataTokenizerArtifact, DataToSequenceArtifact, \
     DataMergingArtifact
-from ap_gpt.entity.config_entity import DataToSequenceConfig
-from ap_gpt.utils.main_utils import read_yaml_file, read_data, save_data
+from ap.entity.config_entity import DataToSequenceConfig, TrainingPipelineConfig
+from ap.utils.main_utils import read_yaml_file, read_data, save_data, pad_sequence
 
 
 class DataToSequence:
     def __init__(self,
                  data_merging_artifact: DataMergingArtifact,
                  data_tokenizer_artifact : DataTokenizerArtifact,
+                 training_pipeline_config : TrainingPipelineConfig,
                  data_to_sequence_config : DataToSequenceConfig = DataToSequenceConfig(),
                  ) -> None:
         """
@@ -27,7 +28,7 @@ class DataToSequence:
             data_to_sequence_config (DataToSequenceConfig):
                 DataToSequenceConfig object containing the configuration for data to sequence conversion.
         """
-
+        self.training_pipeline_config = training_pipeline_config
         self._schema_config = read_yaml_file(file_path=os.path.join(from_root(), SCHEMA_FILE_PATH))
         self.person_id_col = self._schema_config[TABLE_PERSON_NAME][SCHEMA_IDENTIFIER_NAME]
         self.table_name = TABLE_TRIP_NAME
@@ -61,7 +62,10 @@ class DataToSequence:
             if drop_pad and ((seq_y[0] in self.pad_token_idx) or (seq_y[1] in self.pad_token_idx) or (seq_y[2] in self.pad_token_idx)):
                 break
             if len(seq_x) <= end_idx :
-                seq_x += self.pad_token_idx * ((sequence_length - len(seq_x)) //  self.action_nb_cols)
+                if self.training_pipeline_config.model_name == ModelName.LSTM.value:
+                    seq_x = pad_sequence(seq_x, sequence_length, self.pad_token_idx, padding="pre")
+                else:
+                    seq_x = pad_sequence(seq_x, sequence_length, self.pad_token_idx, padding="post")
 
             x_list.append(np.array(seq_x))
             y_list.append(np.array(seq_y))
@@ -96,8 +100,11 @@ class DataToSequence:
         data = data.values if isinstance(data, pd.DataFrame) else data
         start_idx = self.data_merging_artifact.household_columns_number + self.data_merging_artifact.person_columns_number
         x_list = data[ :, :start_idx]
-        pad_token = np.tile(np.tile(self.pad_token_idx, (max_sequence_length - start_idx) // self.action_nb_cols), (data.shape[0], 1))
-        x_list = np.concatenate((x_list, pad_token), axis=1)
+
+        if self.training_pipeline_config.model_name == ModelName.LSTM.value:
+            x_list = pad_sequence(x_list, max_sequence_length, self.pad_token_idx, padding="pre")
+        else:
+            x_list = pad_sequence(x_list, max_sequence_length, self.pad_token_idx, padding="post")
 
         return x_list
 

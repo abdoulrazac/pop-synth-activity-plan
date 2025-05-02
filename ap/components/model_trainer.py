@@ -11,19 +11,20 @@ import torch.nn as nn
 from torch import Tensor
 from torchmetrics.classification import Accuracy, Precision, Recall, F1Score
 
-from ap_gpt.ap_exception import APException
-from ap_gpt.ap_logger import logging
-from ap_gpt.components.data_tokenizer import DataTokenizer
-from ap_gpt.constants import ACTION_NB_COLS
-from ap_gpt.entity.artifact_entity import DataToSequenceArtifact, ModelTrainerArtifact, DataTokenizerArtifact, \
+from ap.ap_exception import APException
+from ap.ap_logger import logging
+from ap.components.data_tokenizer import DataTokenizer
+from ap.constants import ACTION_NB_COLS, ModelName
+from ap.entity.artifact_entity import (
+    DataToSequenceArtifact, ModelTrainerArtifact, DataTokenizerArtifact,
     MetricArtifact, ModelMetrics, DataMergingArtifact
-from ap_gpt.entity.config_entity import ModelTrainerConfig
-from ap_gpt.utils.data_loader import DataLoader
-from ap_gpt.utils.main_utils import read_data
+)
+from ap.entity.config_entity import ModelTrainerConfig
+from ap.utils.data_loader import DataLoader
+from ap.utils.main_utils import read_data, pad_sequence
 
 
 class ModelTrainer:
-
     scheduler = None
 
     def __init__(
@@ -109,11 +110,6 @@ class ModelTrainer:
             verbose : bool. If True, print the loss.
         """
 
-        # Head magnitude
-        action_magnitude = torch.log(torch.tensor(self.tokenizer.name_vocab_size["action"], dtype=torch.float32))
-        duration_magnitude = torch.log(torch.tensor(self.tokenizer.name_vocab_size["duration"], dtype=torch.float32))
-        distance_magnitude = torch.log(torch.tensor(self.tokenizer.name_vocab_size["distance"], dtype=torch.float32))
-
         if is_training:
             self.model.train()
         else:
@@ -127,11 +123,7 @@ class ModelTrainer:
 
             y1, y2, y3 = self.value_to_vector(y)
             y_hat = self.model(X)
-            loss = (
-                    (self.criterion(y_hat[0], y1) / action_magnitude) +
-                    (self.criterion(y_hat[1], y2) / duration_magnitude) +
-                    (self.criterion(y_hat[2], y3) / distance_magnitude)
-            )
+            loss = self.criterion(y_hat[0], y1) + self.criterion(y_hat[1], y2) + self.criterion(y_hat[2], y3)
 
             if is_training:
                 self.model.zero_grad(set_to_none=True)
@@ -172,8 +164,7 @@ class ModelTrainer:
 
         return self.losses
 
-    @staticmethod
-    def compute_metrics(y_true: Tensor, y_pred: Tensor, num_classes: int = 1) -> ModelMetrics:
+    def compute_metrics(self, y_true: Tensor, y_pred: Tensor, num_classes: int = 1) -> ModelMetrics:
         """
         This method of the ModelTrainer class is responsible for computing the metrics
 
@@ -183,11 +174,16 @@ class ModelTrainer:
             num_classes: int. Number of classes. Default is 1.
         """
         try:
-            accuracy = Accuracy(task="multiclass", num_classes=num_classes, average='macro')
-            precision = Precision(task="multiclass", num_classes=num_classes, average='macro')
-            recall = Recall(task="multiclass", num_classes=num_classes, average='macro')
-            f1 = F1Score(task="multiclass", num_classes=num_classes, average='macro')
+            accuracy = Accuracy(task="multiclass", num_classes=num_classes, average='macro').to(self.device)
+            precision = Precision(task="multiclass", num_classes=num_classes, average='macro').to(self.device)
+            recall = Recall(task="multiclass", num_classes=num_classes, average='macro').to(self.device)
+            f1 = F1Score(task="multiclass", num_classes=num_classes, average='macro').to(self.device)
 
+            # Assure that all Y are in to device
+            y_true = y_true.to(self.device)
+            y_pred = y_pred.to(self.device)
+
+            # Compute metric
             accuracy_score = accuracy(y_true, y_pred)
             precision_score = precision(y_true, y_pred)
             recall_score = recall(y_true, y_pred)
@@ -295,7 +291,19 @@ class ModelTrainer:
         )
         )
 
-    def generate(self, X, temperature=1.0, do_sample=False, top_k=None) -> np.ndarray:
+    def generate_one_row(self, X, temperature: int = 1.0, do_sample: bool = False, top_k: int = None) -> Tuple[
+        np.ndarray, np.ndarray]:
+
+        # Assure that X's shape is (1, N)
+        activity_list = list()
+        X = X[:1]
+
+        test = self.pad_token_idx
+
+        if self.model_trainer_config.model_name == ModelName.LSTM.value:
+            X = pad_sequence(X, self.max_sequence_length, self.pad_token_idx, padding="pre")
+        else:
+            X = pad_sequence(X, self.max_sequence_length, self.pad_token_idx, padding="post")
 
         with torch.no_grad():
             for idx in range(self.action_start_idx, self.max_sequence_length, ACTION_NB_COLS):
@@ -332,8 +340,51 @@ class ModelTrainer:
                 y2 = self.tokenizer.convert_index_from_name("duration", y2.cpu().numpy())
                 y3 = self.tokenizer.convert_index_from_name("distance", y3.cpu().numpy())
 
-                X[:, idx:(idx + 3)] = np.array([y1, y2, y3]).T
-        return X
+                if self.model_trainer_config.model_name == ModelName.LSTM.value:
+                    X = np.concatenate((X[:, ACTION_NB_COLS:], np.array([y1, y2, y3]).T), axis=1)
+                else:
+                    X[:, idx:(idx + ACTION_NB_COLS)] = np.array([y1, y2, y3]).T
+
+                activity_list.append([y1[0], y2[0], y3[0]])
+
+        return X, np.array(activity_list)
+
+    def generate(self, X,
+                 temperature: int = 1.0,
+                 do_sample: bool = False,
+                 top_k: int = None,
+                 ) -> Tuple[np.ndarray, np.ndarray]:
+        """
+        Function to generate the output sequence given the input sequence.
+        It returns a tuple containing individual attributes and their corresponding sequence.
+
+        Args :
+            X : np.ndarray. Input sequence.
+            output_path : str. Path to save the output sequence.
+            temperature : int. Temperature for sampling. Default is 1.0.
+            do_sample : bool. Whether to sample from the distribution. Default is False.
+            top_k : int. Top k for sampling. Default is None.
+
+        Returns :
+            tuple : (X, Sequence)
+        """
+        try:
+            logging.info("Generate output sequence")
+
+            individual_attributes = list()
+            activities_list = list()
+
+            for idx in range(X.shape[0]):
+                _, activities = self.generate_one_row(X[idx:idx + 1], temperature, do_sample, top_k)
+                attributes = [idx, *X[idx].tolist()]
+                activities = np.concatenate((np.repeat(idx, activities.shape[0]).reshape(-1, 1), activities),
+                                            axis=1)
+                individual_attributes.append(attributes)
+                activities_list.append(activities)
+
+            return np.array(individual_attributes), np.concatenate(activities_list, axis=0)
+        except Exception as e:
+            raise APException(e, sys)
 
     def initiate_training(self) -> ModelTrainerArtifact:
         """

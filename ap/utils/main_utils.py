@@ -1,6 +1,6 @@
 import os
 import sys
-from typing import Union
+from typing import Union, Tuple, List, Literal
 
 import dill
 import numpy as np
@@ -8,8 +8,8 @@ import pandas as pd
 import torch
 import yaml
 
-from ap_gpt.ap_exception import APException
-from ap_gpt.ap_logger import logging
+from ap.ap_exception import APException
+from ap.ap_logger import logging
 
 
 def read_yaml_file(file_path: str) -> dict:
@@ -175,6 +175,54 @@ def split_data(data: pd.DataFrame, train_size : float = None, test_size: float =
         train_data = data.sample(frac=1 - test_size if not test_size is None else train_size , random_state=random_state)
         test_data = data.drop(train_data.index)
         return train_data, test_data
+
+    except Exception as e:
+        raise APException(e, sys)
+
+
+def pad_sequence(sequence: Union[np.ndarray, List],
+                 max_len: int,
+                 pad_idx: tuple,
+                 padding: Literal["pre", "post"] = "post") -> np.ndarray:
+    """
+    Pad a sequence with given padding tokens up to max_len.
+
+    Args:
+        sequence (Union[np.ndarray, List]): Input sequence to pad
+        max_len (int): Target length after padding
+        pad_idx (Tuple): Padding token values to insert
+        padding (Literal["pre", "post"]): Whether to pad at start or end. Defaults to "post"
+
+    Returns:
+        np.ndarray: Padded sequence of length max_len
+
+    Examples:
+        >>> pad_sequence([1,2,3], 6, (8,9,10), padding="pre")
+        array([8, 9, 10, 1, 2, 3])
+        >>> pad_sequence([1,2,3], 6, (8,9,10), padding="post")
+        array([1, 2, 3, 8, 9, 10])
+    """
+    try:
+        if isinstance(sequence, list):
+            sequence = np.array(sequence).reshape(1, -1)
+
+        assert sequence.ndim == 2, "Sequence must be a 2D array"
+
+        if len(sequence) >= max_len:
+            return sequence[:, :max_len]
+
+        pad_len = max_len - sequence.shape[1]
+
+        # check if pad_len is divisible by len(pad_idx)
+        assert pad_len % len(pad_idx) == 0, "Pad length must be divisible by number of padding tokens"
+
+        num_repeats = pad_len // len(pad_idx)
+        padding_tokens = np.tile(pad_idx, (sequence.shape[0], num_repeats))
+
+        if padding == "pre":
+            return  np.concatenate([padding_tokens, sequence], axis=1)
+        else:
+            return np.concatenate([sequence, padding_tokens], axis=1)
 
     except Exception as e:
         raise APException(e, sys)

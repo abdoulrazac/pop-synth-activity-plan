@@ -1,7 +1,23 @@
-nb_epochs: 10
-heads : 1
-batch_size : 64
-list_num_layers : [12]
-list_embed_size : [2]
-list_forward_expansion : [2]
-list_dropout : [0.1]
+#nb_epochs: 100
+#heads : 2
+#batch_size : 64
+#list_num_layers : [8, 12]
+#list_embed_size : [16, 32]
+#list_forward_expansion : [4]
+#list_dropout : [0.1]
+
+gpt :
+  nb_epochs: 1
+  heads : 2
+  batch_size : 64
+  list_num_layers : [2]
+  list_embed_size : [2]
+  list_forward_expansion : [4]
+  list_dropout : [0.1]
+
+lstm:
+  nb_epochs: 1
+  batch_size : 64
+  list_num_layers : [4]
+  list_dropout : [0.1]
+  list_hidden_dim : [2]

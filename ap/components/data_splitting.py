@@ -1,10 +1,10 @@
 import sys
 
-from ap_gpt.entity.artifact_entity import DataMergingArtifact, DataSplittingArtifact
-from ap_gpt.entity.config_entity import DataSplittingConfig
-from ap_gpt.utils.main_utils import read_data, split_data, save_data
-from ap_gpt.ap_logger import logging
-from ap_gpt.ap_exception import APException
+from ap.entity.artifact_entity import DataMergingArtifact, DataSplittingArtifact
+from ap.entity.config_entity import DataSplittingConfig
+from ap.utils.main_utils import read_data, split_data, save_data
+from ap.ap_logger import logging
+from ap.ap_exception import APException
 
 
 class DataSplitting :

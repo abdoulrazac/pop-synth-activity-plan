@@ -1,7 +1,7 @@
 import torch
 import torch.nn as nn
 
-from ap_gpt.entity.config_entity import ModelTrainerConfig
+from ap.entity.config_entity import ModelTrainerConfig
 
 
 class SelfAttention(nn.Module) :

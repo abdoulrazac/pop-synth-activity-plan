@@ -1,12 +1,11 @@
 import torch
 import torch.nn as nn
 
-from ap_gpt.entity.config_entity import ModelTrainerConfig
+from ap.entity.config_entity import ModelTrainerConfig
 from .transformer_block import TransformerBlock
-from ..base_model import BaseModel
 
 
-class ActionGPT(BaseModel, nn.Module):
+class ActionGPT(nn.Module):
     def __init__(self, model_trainer_config: ModelTrainerConfig):
         super(ActionGPT, self).__init__()
 

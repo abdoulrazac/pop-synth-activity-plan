@@ -1,22 +1,20 @@
 import json
 from dataclasses import dataclass
 from datetime import datetime
-from typing import Dict, Tuple, Type
+from typing import Dict, Tuple
 
 from from_root import from_root
 
-from ap_gpt.constants import *
-from ap_gpt.models.base_model import BaseModel
-from ap_gpt.utils.main_utils import get_device
+from ap.constants import *
+from ap.utils.main_utils import get_device
 
 TIMESTAMP: str = datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
-
 
 @dataclass
 class TrainingPipelineConfig:
 
-    def __init__(self, model_cls = Type[BaseModel],  model_name:str = MODEL_NAME) -> None:
-        self.model_name: str = model_name
+    def __init__(self, model_name: ModelName = ModelName.GPT) -> None:
+        self.model_name: str = model_name.value
         self.timestamp: str = TIMESTAMP
         self.artifact_dir_name: str = os.path.join(from_root(), ARTIFACT_DIR_NAME, self.model_name, self.timestamp)
         self.data_store_path: str = os.path.join(self.artifact_dir_name, DATA_STORE_DIR_NAME)
@@ -176,12 +174,12 @@ class ModelTrainerConfig :
 
     def __init__(self,
                  model_name:str,
-                 heads: int,
                  pad_token_idx: Tuple[int, int, int],
                  nb_actions: int,
                  vocab_size: int,
                  name_vocab_size: Dict[str, int],
                  max_sequence_length: int,
+                 heads: int = 1,
                  embed_size: int = 2,
                  num_layers: int = 1,
                  hidden_dim: int = 128,
@@ -206,7 +204,7 @@ class ModelTrainerConfig :
         self.epochs = epochs
         self.batch_size = batch_size
         self.verbose = verbose
-        self.model_name = model_name
+        self.model_name = training_pipeline_config.model_name
 
         self.model_store_path: str = os.path.join(
             training_pipeline_config.artifact_dir_name,
@@ -224,7 +222,7 @@ class ModelTrainerConfig :
         return (f"ModelConfig(\nembed_size={self.embed_size}, \nheads={self.heads}, \ndropout={self.dropout}, " +
                 f"\nforward_expansion={self.forward_expansion}, \nmax_len={self.max_sequence_length}, " +
                 f"\nnum_layers={self.num_layers}, \nvocab_size={self.vocab_size}, \ndevice={self.device})" +
-                f"\npad_token_idx={self.pad_token_idx}, \nepochs={self.epochs}" +
+                f"\npad_token_idx={self.pad_token_idx}, \nepochs={self.epochs}, \nhidden_dim={self.hidden_dim}, " +
                 f"\nbatch_size={self.batch_size}, \nmodel_store_path={self.model_store_path}, " +
                 f"\nmodel_name={self.model_name}, \nnb_actions={self.nb_actions}, " +
                 f"\nname_vocab_size={self.name_vocab_size}, \nverbose={self.verbose})")
@@ -239,6 +237,7 @@ class ModelTrainerConfig :
             "forward_expansion": self.forward_expansion,
             "max_len": self.max_sequence_length,
             "num_layers": self.num_layers,
+            "hidden_dim": self.hidden_dim,
             "vocab_size": self.vocab_size,
             "name_vocab_size": self.name_vocab_size,
             "epochs": self.epochs,
@@ -256,7 +255,6 @@ class ModelTrainerConfig :
 
 @dataclass
 class ModelSelectionConfig:
-
     def __init__(self, training_pipeline_config: TrainingPipelineConfig = TrainingPipelineConfig()) -> None:
         self.data_generated_store_path: str = os.path.join(
             training_pipeline_config.artifact_dir_name,

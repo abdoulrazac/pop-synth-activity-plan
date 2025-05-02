@@ -3,13 +3,13 @@ from typing import Optional
 
 import pandas as pd
 
-from ap_gpt.ap_exception import APException
-from ap_gpt.ap_logger import logging
-from ap_gpt.components.data_processing_base import DataProcessingBase
-from ap_gpt.constants import *
-from ap_gpt.entity.artifact_entity import DataIngestionArtifact, TripDataProcessingArtifact
-from ap_gpt.entity.config_entity import DataProcessingConfig
-from ap_gpt.utils.main_utils import read_data, save_data
+from ap.ap_exception import APException
+from ap.ap_logger import logging
+from ap.components.data_processing_base import DataProcessingBase
+from ap.constants import *
+from ap.entity.artifact_entity import DataIngestionArtifact, TripDataProcessingArtifact
+from ap.entity.config_entity import DataProcessingConfig
+from ap.utils.main_utils import read_data, save_data
 
 
 class TripDataProcessing(DataProcessingBase):

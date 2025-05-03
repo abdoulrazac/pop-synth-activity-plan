@@ -166,7 +166,7 @@ class ModelTrainerConfig :
     dropout : float =0.1
     forward_expansion : int = 4
     num_layers : int = 1
-    hidden_dim : int = 128
+    hidden_dim : int = 256
     epochs : int = 1 # 00
     batch_size : int = 128
     verbose : bool = False
@@ -182,7 +182,7 @@ class ModelTrainerConfig :
                  heads: int = 1,
                  embed_size: int = 2,
                  num_layers: int = 1,
-                 hidden_dim: int = 128,
+                 hidden_dim: int = 256,
                  forward_expansion: int = 4,
                  dropout: float = 0.1,
                  epochs : int = 1,

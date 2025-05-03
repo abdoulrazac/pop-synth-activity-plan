@@ -262,6 +262,7 @@ class TrainPipeline:
 
         list_num_layers = self._search_grid_config["gpt"]["list_num_layers"]
         list_embed_size = self._search_grid_config["gpt"]["list_embed_size"]
+        list_hidden_dim = self._search_grid_config["gpt"]["list_hidden_dim"]
         list_forward_expansion = self._search_grid_config["gpt"]["list_forward_expansion"]
         list_dropout = self._search_grid_config["gpt"]["list_dropout"]
         epochs = self._search_grid_config["gpt"]["nb_epochs"]
@@ -271,33 +272,35 @@ class TrainPipeline:
         for num_layers in list_num_layers:
             for embed_size in list_embed_size:
                 for forward_expansion in list_forward_expansion:
-                    for dropout in list_dropout:
-                        model_trainer_config = ModelTrainerConfig(
-                            heads=heads,
-                            model_name=f"{self.model_name}_{num_layers}_{embed_size}_{forward_expansion}_{dropout}",
-                            pad_token_idx=data_tokenizer_artifact.pad_token_idx,
-                            nb_actions=data_tokenizer_artifact.nb_actions,
-                            vocab_size=data_tokenizer_artifact.vocab_size,
-                            name_vocab_size=data_tokenizer_artifact.name_vocab_size,
-                            max_sequence_length=data_to_sequence_artifact.max_sequence_length,
-                            num_layers=num_layers,
-                            embed_size=embed_size,
-                            forward_expansion=forward_expansion,
-                            dropout=dropout,
-                            epochs=epochs,
-                            batch_size=batch_size,
-                            training_pipeline_config=self.training_pipeline_config
-                        )
-                        model_trainer = ModelTrainer(
-                            model=ActionGPT(model_trainer_config=model_trainer_config).to(model_trainer_config.device),
-                            model_trainer_config=model_trainer_config,
-                            data_tokenizer_artifact=data_tokenizer_artifact,
-                            data_to_sequence_artifact=data_to_sequence_artifact,
-                            data_merging_artifact=data_merging_artifact,
-                        )
+                    for hidden_dim in list_hidden_dim:
+                        for dropout in list_dropout:
+                            model_trainer_config = ModelTrainerConfig(
+                                heads=heads,
+                                model_name=f"{self.model_name}_{num_layers}_{embed_size}_{forward_expansion}_{hidden_dim}_{dropout}",
+                                pad_token_idx=data_tokenizer_artifact.pad_token_idx,
+                                nb_actions=data_tokenizer_artifact.nb_actions,
+                                vocab_size=data_tokenizer_artifact.vocab_size,
+                                name_vocab_size=data_tokenizer_artifact.name_vocab_size,
+                                max_sequence_length=data_to_sequence_artifact.max_sequence_length,
+                                num_layers=num_layers,
+                                hidden_dim=hidden_dim,
+                                embed_size=embed_size,
+                                forward_expansion=forward_expansion,
+                                dropout=dropout,
+                                epochs=epochs,
+                                batch_size=batch_size,
+                                training_pipeline_config=self.training_pipeline_config
+                            )
+                            model_trainer = ModelTrainer(
+                                model=ActionGPT(model_trainer_config=model_trainer_config).to(model_trainer_config.device),
+                                model_trainer_config=model_trainer_config,
+                                data_tokenizer_artifact=data_tokenizer_artifact,
+                                data_to_sequence_artifact=data_to_sequence_artifact,
+                                data_merging_artifact=data_merging_artifact,
+                            )
 
-                        model_trainer_artifact = model_trainer.initiate_training()
-                        self.start_save_metrics(model_trainer_artifact)
+                            model_trainer_artifact = model_trainer.initiate_training()
+                            self.start_save_metrics(model_trainer_artifact)
 
     def run_grid_search_lstm(self,
                             data_merging_artifact: DataMergingArtifact,
@@ -311,38 +314,41 @@ class TrainPipeline:
         logging.info("Entered the start_grid_search_training method of TrainPipeline class for LSTM model")
 
         list_num_layers = self._search_grid_config["lstm"]["list_num_layers"]
+        list_embed_size = self._search_grid_config["lstm"]["list_embed_size"]
         list_dropout = self._search_grid_config["lstm"]["list_dropout"]
         epochs = self._search_grid_config["lstm"]["nb_epochs"]
         list_hidden_dim = self._search_grid_config["lstm"]["list_hidden_dim"]
         batch_size = self._search_grid_config["lstm"]["batch_size"]
 
         for num_layers in list_num_layers:
-            for hidden_dim in list_hidden_dim:
-                for dropout in list_dropout:
-                    model_trainer_config = ModelTrainerConfig(
-                        hidden_dim=hidden_dim,
-                        model_name=f"{self.model_name}_{num_layers}_{hidden_dim}_{dropout}",
-                        pad_token_idx=data_tokenizer_artifact.pad_token_idx,
-                        nb_actions=data_tokenizer_artifact.nb_actions,
-                        vocab_size=data_tokenizer_artifact.vocab_size,
-                        name_vocab_size=data_tokenizer_artifact.name_vocab_size,
-                        max_sequence_length=data_to_sequence_artifact.max_sequence_length,
-                        num_layers=num_layers,
-                        dropout=dropout,
-                        epochs=epochs,
-                        batch_size=batch_size,
-                        training_pipeline_config=self.training_pipeline_config
-                    )
-                    model_trainer = ModelTrainer(
-                        model=ActionLSTM(model_trainer_config=model_trainer_config).to(model_trainer_config.device),
-                        model_trainer_config=model_trainer_config,
-                        data_tokenizer_artifact=data_tokenizer_artifact,
-                        data_to_sequence_artifact=data_to_sequence_artifact,
-                        data_merging_artifact=data_merging_artifact,
-                    )
+            for embed_size in list_embed_size:
+                for hidden_dim in list_hidden_dim:
+                    for dropout in list_dropout:
+                        model_trainer_config = ModelTrainerConfig(
+                            hidden_dim=hidden_dim,
+                            model_name=f"{self.model_name}_{num_layers}_{embed_size}_{hidden_dim}_{dropout}",
+                            pad_token_idx=data_tokenizer_artifact.pad_token_idx,
+                            nb_actions=data_tokenizer_artifact.nb_actions,
+                            vocab_size=data_tokenizer_artifact.vocab_size,
+                            name_vocab_size=data_tokenizer_artifact.name_vocab_size,
+                            max_sequence_length=data_to_sequence_artifact.max_sequence_length,
+                            num_layers=num_layers,
+                            embed_size=embed_size,
+                            dropout=dropout,
+                            epochs=epochs,
+                            batch_size=batch_size,
+                            training_pipeline_config=self.training_pipeline_config
+                        )
+                        model_trainer = ModelTrainer(
+                            model=ActionLSTM(model_trainer_config=model_trainer_config).to(model_trainer_config.device),
+                            model_trainer_config=model_trainer_config,
+                            data_tokenizer_artifact=data_tokenizer_artifact,
+                            data_to_sequence_artifact=data_to_sequence_artifact,
+                            data_merging_artifact=data_merging_artifact,
+                        )
 
-                    model_trainer_artifact = model_trainer.initiate_training()
-                    self.start_save_metrics(model_trainer_artifact)
+                        model_trainer_artifact = model_trainer.initiate_training()
+                        self.start_save_metrics(model_trainer_artifact)
 
     def start_grid_search_training(self,
                                    data_merging_artifact: DataMergingArtifact,

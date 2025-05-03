@@ -7,17 +7,19 @@
 #list_dropout : [0.1]
 
 gpt :
-  nb_epochs: 1
+  nb_epochs: 200
   heads : 2
-  batch_size : 64
-  list_num_layers : [2]
-  list_embed_size : [2]
+  batch_size : 256
+  list_num_layers : [1, 4, 8, 12]
+  list_embed_size : [16, 32, 64]
   list_forward_expansion : [4]
-  list_dropout : [0.1]
+  list_dropout : [0.1, 0.2]
+  list_hidden_dim : [256]
 
 lstm:
   nb_epochs: 1
-  batch_size : 64
-  list_num_layers : [4]
-  list_dropout : [0.1]
-  list_hidden_dim : [2]
+  batch_size : 256
+  list_num_layers : [1, 4, 8, 12]
+  list_embed_size : [16, 32, 64]
+  list_dropout : [0.1, 0.2]
+  list_hidden_dim : [128, 256, 512]

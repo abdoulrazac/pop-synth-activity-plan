@@ -4,13 +4,15 @@ from ap.entity.config_entity import ModelTrainerConfig
 
 
 class ActionLSTM(nn.Module):
-    def __init__(self, model_trainer_config: ModelTrainerConfig) :
+    def __init__(self, model_trainer_config: ModelTrainerConfig):
         super(ActionLSTM, self).__init__()
 
         vocab_size, embed_size, dropout, hidden_dim, num_layers = (
             model_trainer_config.vocab_size, model_trainer_config.embed_size, model_trainer_config.dropout,
-            model_trainer_config.hidden_dim, model_trainer_config.num_layers
+            model_trainer_config.hidden_dim, model_trainer_config.num_layers,
         )
+
+        hidden_dim_half = hidden_dim // 2
 
         self.name_vocab_size = model_trainer_config.name_vocab_size
         self.device = model_trainer_config.device
@@ -26,9 +28,21 @@ class ActionLSTM(nn.Module):
         self.lstm = nn.LSTM(embed_size, hidden_dim, num_layers, batch_first=True, dropout=dropout)
 
         # Output heads
-        self.fc_action_out = nn.Linear(hidden_dim, self.name_vocab_size["action"])
-        self.fc_duration_out = nn.Linear(hidden_dim, self.name_vocab_size["duration"])
-        self.fc_distance_out = nn.Linear(hidden_dim, self.name_vocab_size["distance"])
+        self.fc_action_out = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim_half),
+            nn.ReLU(),
+            nn.Linear(hidden_dim_half, self.name_vocab_size["action"])
+        )
+        self.fc_duration_out = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim_half),
+            nn.ReLU(),
+            nn.Linear(hidden_dim_half, self.name_vocab_size["duration"])
+        )
+        self.fc_distance_out = nn.Sequential(
+            nn.Linear(hidden_dim, hidden_dim_half),
+            nn.ReLU(),
+            nn.Linear(hidden_dim_half, self.name_vocab_size["distance"])
+        )
 
     def forward(self, x):
         # x: [batch_size, seq_len] (token indices)

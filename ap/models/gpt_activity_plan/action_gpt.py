@@ -9,10 +9,13 @@ class ActionGPT(nn.Module):
     def __init__(self, model_trainer_config: ModelTrainerConfig):
         super(ActionGPT, self).__init__()
 
-        embed_size, num_layers, vocab_size, dropout = (
+        embed_size, num_layers, vocab_size, dropout, hidden_dim = (
             model_trainer_config.embed_size, model_trainer_config.num_layers,
-            model_trainer_config.vocab_size, model_trainer_config.dropout
+            model_trainer_config.vocab_size, model_trainer_config.dropout,
+            model_trainer_config.hidden_dim
         )
+
+        hidden_dim_half = hidden_dim // 2
 
         self.pad_token_idx = model_trainer_config.pad_token_idx
         self.max_sequence_length = model_trainer_config.max_sequence_length
@@ -25,9 +28,21 @@ class ActionGPT(nn.Module):
         self.norm = nn.LayerNorm(embed_size)
 
         ## FC for each output (action, duration, distance)
-        self.fc_action_out = nn.Linear(self.max_sequence_length * embed_size, model_trainer_config.name_vocab_size["action"])
-        self.fc_duration_out = nn.Linear(self.max_sequence_length * embed_size, model_trainer_config.name_vocab_size["duration"])
-        self.fc_distance_out = nn.Linear(self.max_sequence_length * embed_size, model_trainer_config.name_vocab_size["distance"])
+        self.fc_action_out = nn.Sequential(
+            nn.Linear(self.max_sequence_length * embed_size, hidden_dim_half),
+            nn.ReLU(),
+            nn.Linear(hidden_dim_half, model_trainer_config.name_vocab_size["action"])
+        )
+        self.fc_duration_out = nn.Sequential(
+            nn.Linear(self.max_sequence_length * embed_size, hidden_dim_half),
+            nn.ReLU(),
+            nn.Linear(hidden_dim_half, model_trainer_config.name_vocab_size["duration"])
+        )
+        self.fc_distance_out = nn.Sequential(
+            nn.Linear(self.max_sequence_length * embed_size, hidden_dim_half),
+            nn.ReLU(),
+            nn.Linear(hidden_dim_half, model_trainer_config.name_vocab_size["distance"])
+        )
 
     def make_mask(self, x):
         pad_token_idx = torch.tensor(self.pad_token_idx, device=x.device)

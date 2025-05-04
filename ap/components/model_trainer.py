@@ -419,8 +419,11 @@ class ModelTrainer:
             for idx in range(X.shape[0]):
                 _, activities = self.generate_one_row(X[idx:idx + 1], temperature, do_sample, top_k)
                 attributes = [idx, *X[idx].tolist()]
-                activities = np.concatenate((np.repeat(idx, activities.shape[0]).reshape(-1, 1), activities),
-                                            axis=1)
+                activities = np.concatenate((
+                    np.repeat(idx, activities.shape[0]).reshape(-1, 1),
+                    np.arange(activities.shape[0]).reshape(-1, 1),
+                    activities
+                ), axis=1)
                 individual_attributes.append(attributes)
                 activities_list.append(activities)
 

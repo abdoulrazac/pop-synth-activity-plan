@@ -156,7 +156,7 @@ class ModelSelection :
                             # Encode and save the data
                             df_decoded = self.model_trainer.tokenizer.decode(df[:, 1:])
                             df_decoded = np.concatenate((df[:, 0].reshape(-1, 1), df_decoded), axis=1)
-                            columns = ["action", "duration", "distance"] if key == "activities" else \
+                            columns = ["activity_id", "action", "duration", "distance"] if key == "activities" else \
                                 (self.data_merging_artifact.household_columns + self.data_merging_artifact.person_columns)
 
                             df_decoded = pd.DataFrame(

@@ -69,25 +69,26 @@ class ModelSelection :
             self.best_model_path = best_model["model_path"]
 
             config = json.loads(self.best_model_config)
+            self.model_config = ModelTrainerConfig( # noqa
+                model_name=config["model_name"],
+                heads=int(config["heads"]),
+                pad_token_idx=(int(config["pad_token_idx"][0]), int(config["pad_token_idx"][1]),
+                               int(config["pad_token_idx"][2])),
+                nb_actions=int(config["nb_actions"]),
+                vocab_size=int(config["vocab_size"]),
+                name_vocab_size=dict(config["name_vocab_size"]),
+                max_sequence_length=int(config["max_sequence_length"]),
+                embed_size=int(config["embed_size"]),
+                num_layers=int(config["num_layers"]),
+                hidden_dim=int(config["hidden_dim"]),
+                forward_expansion=int(config["forward_expansion"]),
+                dropout=float(config["dropout"]),
+                epochs=int(config["epochs"]),
+                batch_size=int(config["batch_size"]),
+                verbose=bool(config["verbose"]),
+            )
+
             if best_model["model_name"] == ModelName.GPT.value:
-                self.model_config = ModelTrainerConfig( # noqa
-                    model_name=config["model_name"],
-                    heads=int(config["heads"]),
-                    pad_token_idx=(int(config["pad_token_idx"][0]), int(config["pad_token_idx"][1]),
-                                   int(config["pad_token_idx"][2])),
-                    nb_actions=int(config["nb_actions"]),
-                    vocab_size=int(config["vocab_size"]),
-                    name_vocab_size=dict(config["name_vocab_size"]),
-                    max_sequence_length=int(config["max_sequence_length"]),
-                    embed_size=int(config["embed_size"]),
-                    num_layers=int(config["num_layers"]),
-                    hidden_dim=int(config["hidden_dim"]),
-                    forward_expansion=int(config["forward_expansion"]),
-                    dropout=float(config["dropout"]),
-                    epochs=int(config["epochs"]),
-                    batch_size=int(config["batch_size"]),
-                    verbose=bool(config["verbose"]),
-                )
                 self.model_trainer = ModelTrainer(
                     model=ActionGPT(model_trainer_config=self.model_config).to(self.model_config.device),
                     model_trainer_config=self.model_config,
@@ -96,21 +97,6 @@ class ModelSelection :
                     data_merging_artifact=self.data_merging_artifact,
                 )
             elif best_model["model_name"] == ModelName.LSTM.value:
-                self.model_config = ModelTrainerConfig(  # noqa
-                    model_name=config["model_name"],
-                    pad_token_idx=(int(config["pad_token_idx"][0]), int(config["pad_token_idx"][1]),
-                                   int(config["pad_token_idx"][2])),
-                    nb_actions=int(config["nb_actions"]),
-                    vocab_size=int(config["vocab_size"]),
-                    name_vocab_size=dict(config["name_vocab_size"]),
-                    max_sequence_length=int(config["max_sequence_length"]),
-                    num_layers=int(config["num_layers"]),
-                    hidden_dim=int(config["hidden_dim"]),
-                    dropout=float(config["dropout"]),
-                    epochs=int(config["epochs"]),
-                    batch_size=int(config["batch_size"]),
-                    verbose=bool(config["verbose"]),
-                )
                 self.model_trainer = ModelTrainer(
                     model=ActionLSTM(model_trainer_config=self.model_config).to(self.model_config.device),
                     model_trainer_config=self.model_config,
@@ -154,11 +140,17 @@ class ModelSelection :
                             ))
 
                             # Encode and save the data
-                            df_decoded = self.model_trainer.tokenizer.decode(df[:, 1:])
-                            df_decoded = np.concatenate((df[:, 0].reshape(-1, 1), df_decoded), axis=1)
-                            columns = ["activity_id", "action", "duration", "distance"] if key == "activities" else \
-                                (self.data_merging_artifact.household_columns + self.data_merging_artifact.person_columns)
 
+                            if key == "activities":
+                                columns = ["activity_id", "action", "duration", "distance"]
+                                first_col = 2
+                            else:
+                                columns =(self.data_merging_artifact.household_columns +
+                                          self.data_merging_artifact.person_columns)
+                                first_col = 1
+
+                            df_decoded = self.model_trainer.tokenizer.decode(df[:, first_col:])
+                            df_decoded = np.concatenate((df[:, :first_col], df_decoded), axis=1)
                             df_decoded = pd.DataFrame(
                                 df_decoded,
                                 columns=['person_id'] + columns

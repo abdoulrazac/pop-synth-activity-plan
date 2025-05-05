@@ -18,13 +18,9 @@ class ActionLSTM(nn.Module):
         self.device = model_trainer_config.device
 
         self.embedding = nn.Embedding(vocab_size, embed_size)
-        self.mlp_embedding = nn.Sequential(
-            nn.Linear(embed_size, hidden_dim),
-            nn.LayerNorm(embed_size),
-            nn.ELU(),
-            nn.Linear(hidden_dim, embed_size)
-        )
 
+        # Apply dropout only if num_layers > 1
+        dropout = dropout if num_layers > 1 else 0.0
         self.lstm = nn.LSTM(embed_size, hidden_dim, num_layers, batch_first=True, dropout=dropout)
 
         # Output heads
@@ -47,7 +43,6 @@ class ActionLSTM(nn.Module):
     def forward(self, x):
         # x: [batch_size, seq_len] (token indices)
         x = self.embedding(x)  # -> [batch_size, seq_len, embed_dim]
-        x = self.mlp_embedding(x)
         x, _ = self.lstm(x)
 
         last_time_step = x[:, -1, :]  # Use last LSTM output

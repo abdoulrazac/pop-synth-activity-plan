@@ -9,9 +9,6 @@ artifact
 .env
 .env.*
 
-# Package files
-ap.egg-info
-
 # Log files
 logs
 ap/logs

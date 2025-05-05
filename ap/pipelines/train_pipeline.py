@@ -1,6 +1,5 @@
 import os
 import sys
-from concurrent.futures import ThreadPoolExecutor
 
 import numpy as np
 from from_root import from_root
@@ -92,15 +91,11 @@ class TrainPipeline:
                 data_ingestion_artifact=data_ingestion_artifact,
             )
 
-            logging.info("Preprocessing data using multithreading")
-            with ThreadPoolExecutor() as executor:
-                household_future = executor.submit(household_data_processing.initiate_data_processing)
-                person_future = executor.submit(person_data_processing.initiate_data_processing)
-                trip_future = executor.submit(trip_data_processing.initiate_data_processing)
+            logging.info("Preprocessing data using")
 
-                household_data_processing_artifact = household_future.result()
-                person_data_processing_artifact = person_future.result()
-                trip_data_processing_artifact = trip_future.result()
+            household_data_processing_artifact = household_data_processing.initiate_data_processing()
+            person_data_processing_artifact = person_data_processing.initiate_data_processing()
+            trip_data_processing_artifact = trip_data_processing.initiate_data_processing()
 
             data_processing_artifact = DataProcessingArtifact(
                 household_processed_data_file_path=household_data_processing_artifact.household_processed_data_file_path,

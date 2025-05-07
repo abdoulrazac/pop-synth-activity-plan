@@ -98,7 +98,7 @@ class ModelTrainer:
         return (
                 self.criterion(y_hat[0], y[0]) +
                 self.criterion(y_hat[1], y[1]) +
-                self.criterion(y_hat[2], y[0])
+                self.criterion(y_hat[2], y[2])
         )
 
     def forward(self,

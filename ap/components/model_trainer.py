@@ -94,6 +94,13 @@ class ModelTrainer:
     def load_model(self, path) -> None:
         self.model.load_state_dict(torch.load(path))
 
+    def loss_fn(self, y_hat: Tuple[Tensor, Tensor, Tensor], y: Tuple[Tensor, Tensor, Tensor]):
+        return (
+                self.criterion(y_hat[0], y[0]) +
+                self.criterion(y_hat[1], y[1]) +
+                self.criterion(y_hat[2], y[0])
+        )
+
     def forward(self,
                 data_loader: DataLoader,
                 is_training: bool = False,
@@ -121,14 +128,11 @@ class ModelTrainer:
             for X, y in data_loader:
                 X, y = torch.tensor(X, device=self.device), torch.tensor(y, device=self.device)
 
-                y1, y2, y3 = self.value_to_vector(y)
+                y = self.value_to_vector(y)
+
                 y_hat = self.model(X)
 
-                loss = (
-                        self.criterion(y_hat[0], y1) +
-                        self.criterion(y_hat[1], y2) +
-                        self.criterion(y_hat[2], y3)
-                )
+                loss = self.loss_fn(y_hat, y)
 
                 if is_training:
                     self.optimizer.zero_grad()

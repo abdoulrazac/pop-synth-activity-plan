@@ -12,3 +12,6 @@ artifact
 # Log files
 logs
 ap/logs
+
+# script
+script.sh

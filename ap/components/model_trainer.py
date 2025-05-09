@@ -59,8 +59,7 @@ class ModelTrainer:
         self.optimizer = torch.optim.AdamW(self.model.parameters(), lr=3e-4, betas=(0.9, 0.95))
         self.criterion = nn.CrossEntropyLoss()
         self.criterion.to(model_trainer_config.device)
-        # self.scheduler = torch.optim.lr_scheduler.StepLR(self.optimizer, step_size=40, gamma=0.1)
-        # self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=lambda step: 0.85 ** (step // 10))
+        self.scheduler = torch.optim.lr_scheduler.LambdaLR(self.optimizer, lr_lambda=lambda step: 0.85 ** (step // 10))
 
         self.losses = {'train': [], 'test': []}
         self.best_loss = float('inf')

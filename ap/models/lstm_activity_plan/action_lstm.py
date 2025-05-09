@@ -12,8 +12,6 @@ class ActionLSTM(nn.Module):
             model_trainer_config.hidden_dim, model_trainer_config.num_layers,
         )
 
-        hidden_dim_half = hidden_dim // 2
-
         self.name_vocab_size = model_trainer_config.name_vocab_size
         self.device = model_trainer_config.device
 
@@ -25,19 +23,19 @@ class ActionLSTM(nn.Module):
 
         # Output heads
         self.fc_action_out = nn.Sequential(
-            nn.Linear(hidden_dim, hidden_dim_half),
+            nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU(),
-            nn.Linear(hidden_dim_half, self.name_vocab_size["action"])
+            nn.Linear(hidden_dim, self.name_vocab_size["action"])
         )
         self.fc_duration_out = nn.Sequential(
-            nn.Linear(hidden_dim, hidden_dim_half),
+            nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU(),
-            nn.Linear(hidden_dim_half, self.name_vocab_size["duration"])
+            nn.Linear(hidden_dim, self.name_vocab_size["duration"])
         )
         self.fc_distance_out = nn.Sequential(
-            nn.Linear(hidden_dim, hidden_dim_half),
+            nn.Linear(hidden_dim, hidden_dim),
             nn.ReLU(),
-            nn.Linear(hidden_dim_half, self.name_vocab_size["distance"])
+            nn.Linear(hidden_dim, self.name_vocab_size["distance"])
         )
 
     def forward(self, x):

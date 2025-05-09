@@ -15,8 +15,6 @@ class ActionGPT(nn.Module):
             model_trainer_config.hidden_dim
         )
 
-        hidden_dim_half = hidden_dim // 2
-
         self.pad_token_idx = model_trainer_config.pad_token_idx
         self.max_sequence_length = model_trainer_config.max_sequence_length
         self.device = model_trainer_config.device
@@ -28,20 +26,21 @@ class ActionGPT(nn.Module):
         self.norm = nn.LayerNorm(embed_size)
 
         ## FC for each output (action, duration, distance)
+        outer_dim = self.max_sequence_length * embed_size
         self.fc_action_out = nn.Sequential(
-            nn.Linear(self.max_sequence_length * embed_size, hidden_dim_half),
+            nn.Linear(outer_dim, outer_dim),
             nn.ReLU(),
-            nn.Linear(hidden_dim_half, model_trainer_config.name_vocab_size["action"])
+            nn.Linear(outer_dim, model_trainer_config.name_vocab_size["action"])
         )
         self.fc_duration_out = nn.Sequential(
-            nn.Linear(self.max_sequence_length * embed_size, hidden_dim_half),
+            nn.Linear(outer_dim, outer_dim),
             nn.ReLU(),
-            nn.Linear(hidden_dim_half, model_trainer_config.name_vocab_size["duration"])
+            nn.Linear(outer_dim, model_trainer_config.name_vocab_size["duration"])
         )
         self.fc_distance_out = nn.Sequential(
-            nn.Linear(self.max_sequence_length * embed_size, hidden_dim_half),
+            nn.Linear(outer_dim, outer_dim),
             nn.ReLU(),
-            nn.Linear(hidden_dim_half, model_trainer_config.name_vocab_size["distance"])
+            nn.Linear(outer_dim, model_trainer_config.name_vocab_size["distance"])
         )
 
     def make_mask(self, x):

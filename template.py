@@ -27,12 +27,18 @@ shared_files : List[Tuple[str, bool]] = [
     ('config/search_grid.yml', False),
     ("config/generating_param_grid.yml", False),
 
+    # train bash script
+    ("script", True),
+    ("script/train_gpt.sh", False),
+    ("script/train_lstm.sh", False),
+
     # Pipelines directories
     ('main.py', False),
     ('setup.py', False),
     ('demo.py', False),
     ('requirements.txt', False),
-    ('README.md', False)
+    ('README.md', False),
+    ('Dockerfile', False)
 ]
 
 

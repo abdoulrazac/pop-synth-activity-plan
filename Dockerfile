@@ -1,4 +1,4 @@
-FROM nvidia/cuda:12.6.0-base-ubuntu24.04
+FROM nvidia/cuda:12.6.0-cudnn-devel-ubuntu24.04
 
 # Set environment variables
 ENV DEBIAN_FRONTEND=noninteractive

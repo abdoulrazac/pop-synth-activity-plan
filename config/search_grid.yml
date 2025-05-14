@@ -9,7 +9,7 @@
 gpt :
   nb_epochs: 500
   heads : 4
-  batch_size : 256
+  batch_size : 64
   list_num_layers : [4, 8, 12]
   list_embed_size : [16, 32]
   list_forward_expansion : [4]
@@ -22,7 +22,7 @@ lstm:
   list_num_layers : [4, 8, 12]
   list_embed_size : [16, 32]
   list_dropout : [0.1]
-  list_hidden_dim : [256, 512]
+  list_hidden_dim : [512]
 
 #gpt :
 #  nb_epochs: 1

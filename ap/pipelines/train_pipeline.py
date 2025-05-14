@@ -264,6 +264,13 @@ class TrainPipeline:
         heads = self._search_grid_config["gpt"]["heads"]
         batch_size = self._search_grid_config["gpt"]["batch_size"]
 
+
+        # -------- A SUPPRIMER APRÈS -------- #
+        # Get Env variable NUM_LAYERS_INDEX
+        num_layers_index = int(os.getenv("NUM_LAYERS_INDEX")) if os.getenv("NUM_LAYERS_INDEX") else 0
+        list_num_layers = list_num_layers[num_layers_index:num_layers_index+1]
+        # ------------------------------------ #
+
         for num_layers in list_num_layers:
             for embed_size in list_embed_size:
                 for forward_expansion in list_forward_expansion:
@@ -315,10 +322,18 @@ class TrainPipeline:
         list_hidden_dim = self._search_grid_config["lstm"]["list_hidden_dim"]
         batch_size = self._search_grid_config["lstm"]["batch_size"]
 
+        # -------- A SUPPRIMER APRÈS -------- #
+        # Get Env variable NUM_LAYERS_INDEX
+        num_layers_index = int(os.getenv("NUM_LAYERS_INDEX")) if os.getenv("NUM_LAYERS_INDEX") else 0
+        list_num_layers = list_num_layers[num_layers_index:num_layers_index+1]
+        # ------------------------------------ #
+
         for num_layers in list_num_layers:
             for embed_size in list_embed_size:
                 for hidden_dim in list_hidden_dim:
                     for dropout in list_dropout:
+
+
                         model_trainer_config = ModelTrainerConfig(
                             hidden_dim=hidden_dim,
                             model_name=f"{self.model_name}_{num_layers}_{embed_size}_{hidden_dim}_{dropout}",

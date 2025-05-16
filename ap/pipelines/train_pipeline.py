@@ -346,7 +346,8 @@ class TrainPipeline:
                             dropout=dropout,
                             epochs=epochs,
                             batch_size=batch_size,
-                            training_pipeline_config=self.training_pipeline_config
+                            training_pipeline_config=self.training_pipeline_config,
+                            device="cpu"
                         )
                         model_trainer = ModelTrainer(
                             model=ActionLSTM(model_trainer_config=model_trainer_config).to(model_trainer_config.device),

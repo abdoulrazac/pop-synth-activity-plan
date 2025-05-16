@@ -333,7 +333,6 @@ class TrainPipeline:
                 for hidden_dim in list_hidden_dim:
                     for dropout in list_dropout:
 
-
                         model_trainer_config = ModelTrainerConfig(
                             hidden_dim=hidden_dim,
                             model_name=f"{self.model_name}_{num_layers}_{embed_size}_{hidden_dim}_{dropout}",

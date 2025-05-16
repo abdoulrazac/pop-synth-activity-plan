@@ -162,6 +162,7 @@ class ModelTrainerConfig :
     name_vocab_size : Dict[str, int]
     nb_actions : int
     vocab_size : int
+    device : str
     embed_size : int = 2
     dropout : float =0.1
     forward_expansion : int = 4
@@ -170,7 +171,6 @@ class ModelTrainerConfig :
     epochs : int = 1 # 00
     batch_size : int = 128
     verbose : bool = False
-    device : str = get_device()
 
     def __init__(self,
                  model_name:str,
@@ -188,7 +188,8 @@ class ModelTrainerConfig :
                  epochs : int = 1,
                  batch_size: int = 128,
                  verbose: bool = False,
-                 training_pipeline_config: TrainingPipelineConfig = TrainingPipelineConfig()
+                 training_pipeline_config: TrainingPipelineConfig = TrainingPipelineConfig(),
+                 device : str = get_device()
             ) -> None:
         self.heads = heads
         self.pad_token_idx = pad_token_idx
@@ -204,6 +205,7 @@ class ModelTrainerConfig :
         self.epochs = epochs
         self.batch_size = batch_size
         self.verbose = verbose
+        self.device = device
         self.model_name = training_pipeline_config.model_name
 
         self.model_store_path: str = os.path.join(

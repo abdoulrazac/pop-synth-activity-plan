@@ -8,7 +8,7 @@ from from_root import from_root
 from ap.constants import *
 from ap.utils.main_utils import get_device
 
-TIMESTAMP: str = datetime.now().strftime("%m_%d_%Y_%H_%M_%S")
+TIMESTAMP: str = datetime.now().strftime("%Y_%m_%d_%H_%M_%S")
 
 @dataclass
 class TrainingPipelineConfig:

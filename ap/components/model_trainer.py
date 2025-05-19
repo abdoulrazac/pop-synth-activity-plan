@@ -340,7 +340,7 @@ class ModelTrainer:
                          ) -> Tuple[np.ndarray, np.ndarray]:
 
         # Assure that X's shape is (1, N)
-        activity_list = list()
+        activity_list = np.array([]).reshape(0, ACTION_NB_COLS)
         X = X[:1]
 
         test = self.pad_token_idx
@@ -385,14 +385,25 @@ class ModelTrainer:
                 y2 = self.tokenizer.convert_index_from_name("duration", y2.cpu().numpy())
                 y3 = self.tokenizer.convert_index_from_name("distance", y3.cpu().numpy())
 
+                y_pred = np.array([y1, y2, y3]).reshape(1, -1)
+
                 if self.model_trainer_config.model_name == ModelName.LSTM.value:
-                    X = np.concatenate((X[:, ACTION_NB_COLS:], np.array([y1, y2, y3]).T), axis=1)
+                    X = np.concatenate((X[:, ACTION_NB_COLS:], y_pred), axis=1)
                 else:
-                    X[:, idx:(idx + ACTION_NB_COLS)] = np.array([y1, y2, y3]).T
+                    X[:, idx:(idx + ACTION_NB_COLS)] = y_pred
 
-                activity_list.append([y1[0], y2[0], y3[0]])
+                activity_list = np.concatenate((activity_list, y_pred), axis=0)
 
-        return X, np.array(activity_list)
+                # Check if y_pred contains pad_token break
+                if np.isin(y_pred, self.pad_token_idx).any():
+                    break
+
+
+        # Check if the x ndim == 2 and the activity_list ndim == 2
+        assert X.ndim == 2, "X should be 2 dimensional"
+        assert activity_list.ndim == 2, "Y should be 2 dimensional"
+
+        return X, activity_list
 
     def generate(self, X,
                  temperature: int = 1.0,
